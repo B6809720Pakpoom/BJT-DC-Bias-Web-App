@@ -11,6 +11,9 @@
   <header>
     <h1>BJT DC Bias Calculator</h1>
     <p>วงจร Common-Emitter แบบ Voltage-Divider Bias — คำนวณ DC Operating Point</p>
+    <p class="assumption">
+      แบบจำลอง: Forward-Active Approximation (β คงที่, VBE คงที่, ไม่คิด Early effect)
+    </p>
   </header>
 
   {% if errors %}
@@ -24,11 +27,11 @@
   </section>
   {% endif %}
 
-  {% if result and result.warnings %}
+  {% if warnings %}
   <section class="warnings" role="alert">
     <h2>ข้อจำกัดของแบบจำลอง</h2>
     <ul>
-      {% for message in result.warnings %}
+      {% for message in warnings %}
       <li>{{ message }}</li>
       {% endfor %}
     </ul>
@@ -57,50 +60,43 @@
       <div class="field">
         <label for="r1">R1 (kΩ)</label>
         <input type="text" id="r1" name="r1" value="{{ values.get('r1', '100') }}" inputmode="decimal">
-        {% if ohms.get('r1') is not none %}<output class="ohms" for="r1">= {{ "%.0f"|format(ohms.r1) }} Ω</output>{% endif %}
+        {% if ohms.get('r1') is not none %}<output class="ohms" for="r1">= {{ ohms.r1 }} Ω</output>{% endif %}
       </div>
 
       <div class="field">
         <label for="r2">R2 (kΩ)</label>
         <input type="text" id="r2" name="r2" value="{{ values.get('r2', '22') }}" inputmode="decimal">
-        {% if ohms.get('r2') is not none %}<output class="ohms" for="r2">= {{ "%.0f"|format(ohms.r2) }} Ω</output>{% endif %}
+        {% if ohms.get('r2') is not none %}<output class="ohms" for="r2">= {{ ohms.r2 }} Ω</output>{% endif %}
       </div>
 
       <div class="field">
         <label for="rc">RC (kΩ)</label>
         <input type="text" id="rc" name="rc" value="{{ values.get('rc', '2.2') }}" inputmode="decimal">
-        {% if ohms.get('rc') is not none %}<output class="ohms" for="rc">= {{ "%.0f"|format(ohms.rc) }} Ω</output>{% endif %}
+        {% if ohms.get('rc') is not none %}<output class="ohms" for="rc">= {{ ohms.rc }} Ω</output>{% endif %}
       </div>
 
       <div class="field">
         <label for="re">RE (kΩ)</label>
         <input type="text" id="re" name="re" value="{{ values.get('re', '1') }}" inputmode="decimal">
-        {% if ohms.get('re') is not none %}<output class="ohms" for="re">= {{ "%.0f"|format(ohms.re) }} Ω</output>{% endif %}
+        {% if ohms.get('re') is not none %}<output class="ohms" for="re">= {{ ohms.re }} Ω</output>{% endif %}
       </div>
     </fieldset>
 
     <button type="submit">Calculate DC Bias</button>
   </form>
 
-  {% if result %}
-  {% set label = {"active": "Active", "cutoff": "Cutoff", "saturation": "Saturation"}[result.region] %}
+  {% if display %}
   <section class="results">
-    <h2>DC Bias Results</h2>
-    <p class="region region-{{ result.region }}">{{ label }}</p>
+    <h2>ผลลัพธ์ DC Bias</h2>
+    <p class="region region-{{ display.region_class }}">{{ display.region_label }}</p>
     <table>
       <thead>
         <tr><th scope="col">พารามิเตอร์</th><th scope="col">ค่าที่คำนวณ</th></tr>
       </thead>
       <tbody>
-        <tr><th>VTH</th><td>{{ "%.3f"|format(result.vth) }} V</td></tr>
-        <tr><th>RTH</th><td>{{ "%.2f"|format(result.rth / 1000) }} kΩ</td></tr>
-        <tr><th>IB</th><td>{{ "%.3f"|format(result.ib * 1e6) }} µA</td></tr>
-        <tr><th>IC</th><td>{{ "%.3f"|format(result.ic * 1000) }} mA</td></tr>
-        <tr><th>IE</th><td>{{ "%.3f"|format(result.ie * 1000) }} mA</td></tr>
-        <tr><th>VB</th><td>{{ "%.3f"|format(result.vb) }} V</td></tr>
-        <tr><th>VE</th><td>{{ "%.3f"|format(result.ve) }} V</td></tr>
-        <tr><th>VC</th><td>{{ "%.3f"|format(result.vc) }} V</td></tr>
-        <tr><th>VCE</th><td>{{ "%.3f"|format(result.vce) }} V</td></tr>
+        {% for label, value, unit in display.rows %}
+        <tr><th>{{ label }}</th><td>{{ value }} {{ unit }}</td></tr>
+        {% endfor %}
       </tbody>
     </table>
   </section>

@@ -132,7 +132,9 @@ def calculate_dc_bias(vcc, r1, r2, rc, re, beta, vbe) -> DcBiasResult:
 | `r1 <= 0 or r2 <= 0 or rc <= 0 or re <= 0` | ค่าความต้านทานต้องมากกว่า 0 Ω |
 | `beta <= 0` | β ต้องมากกว่า 0 |
 | `vbe < 0 or vbe >= vcc` | VBE ต้องอยู่ระหว่าง 0 และ VCC |
-| ค่าไม่ใช่ตัวเลข / ว่าง | แจ้งที่ชั้น `app.py`: "กรุณากรอกตัวเลขให้ครบทุกช่อง" |
+| ค่าไม่ใช่จำนวนจำกัด (`nan`, `inf`, ล้นเป็น `inf` หลังคูณ 1000) | "ค่าต้องเป็นจำนวนจำกัด (finite)" ที่ `app.py` / "ต้องเป็นจำนวนจำกัด (finite)" ที่ `dc_bias.py` |
+| ผลลัพธ์ล้นเป็น `inf`/`nan` แม้อินพุตเป็นจำนวนจำกัด | "ผลลัพธ์ล้นช่วงตัวเลข … กรุณาลดขนาดค่าอินพุต" |
+| ค่าไม่ใช่ตัวเลข / ว่าง | แจ้งที่ชั้น `app.py`: "กรุณากรอกตัวเลขให้ครบทุกช่อง" / "ช่องต่อไปนี้ไม่ใช่ตัวเลข" |
 
 `app.py` แปลงข้อความเป็น float ด้วย `request.form.get(name, "").strip()` →
 ถ้าแปลงไม่ได้หรือว่าง ให้รวบรวมชื่อช่องที่ผิดแล้วแสดงเป็นรายการ error (HTTP 200)
@@ -146,7 +148,7 @@ RTH = R1·R2/(R1+R2)
 ถ้า VTH <= VBE:                        # ลำดับที่ 1 — ชนะทุกกรณี (if)
     region = "cutoff"
     IB = IC = IE = 0
-    VE = 0 ,  VB = VTH ,  VC = VCC ,  VCE = VCC - VTH
+    VE = 0 ,  VB = VTH ,  VC = VCC ,  VCE = VCC
     warning: "VTH (… V) ≤ VBE (… V) → ทรานซิสเตอร์อยู่ใน cutoff
               แบบจำลอง forward-active ใช้ไม่ได้ กระแสทุกตัวเป็นศูนย์"
 
@@ -165,6 +167,9 @@ RTH = R1·R2/(R1+R2)
 
 - **Precedence:** cutoff ถูกตรวจก่อนและเป็น `if` / saturation เป็น `elif`
   → สอง warning ไม่เกิดพร้อมกัน, region มีค่าเดียวเสมอ
+- **VCE ใน cutoff = VCC** เพราะ IB = IC = IE = 0 → ไม่มีแรงดันตกคร่อม RC (VC = VCC)
+  และไม่มีแรงดันตกคร่อม RE (VE = 0) ดังนั้น VCE = VC − VE = VCC
+  (ค่า `VCC − VTH` แบบเดิมทำให้ VC − VE ≠ VCE ซึ่งขัดแย้งกันเองในตารางผลลัพธ์)
 - **ค่าใน cutoff ถูก clamp ที่ศูนย์** ไม่แสดงกระแสติดลบหรือ VC > VCC
   เพราะค่าติดลบเป็นผลของสมการ forward-active ที่ไม่ควรใช้ ไม่ใช่ฟิสิกส์จริง
 - **ค่าใน saturation แสดงค่าที่คำนวณได้ตามจริง** (อาจติดลบได้) พร้อม warning
@@ -191,17 +196,20 @@ RTH = R1·R2/(R1+R2)
 `tests/test_dc_bias.py` (อย่างน้อย 6 tests)
 1. กรณีอ้างอิงใบงาน → VTH, RTH, IB, IC, IE, VB, VE, VC, VCE ตรงค่าความละเอียดเต็ม
    (tolerance relative 1e-9) — ตัวเลข oracle มาจากการคำนวณมือ+สคริปต์อิสระ ไม่ใช่ตาราง §8 ที่ปัดแล้ว
-2. กรณี cutoff (VTH ≤ VBE) → region == "cutoff", IB==IC==IE==0, VC==VCC, VCE==VCC−VTH และมี warning
+2. กรณี cutoff (VTH ≤ VBE) → region == "cutoff", IB==IC==IE==0, VC==VCC, VCE==VCC และมี warning
 3. กรณี saturation (RC สูงมากจน VCE ≤ 0.3) → region == "saturation" และมี warning
 4. `beta <= 0` → `ValueError`
 5. `r1 <= 0` → `ValueError`
 6. `vcc <= 0` → `ValueError`
+7. `nan` / `inf` / `-inf` ในทุกฟิลด์ → `ValueError` (ต้องไม่ถูกจัดเป็น active)
 
 `tests/test_web.py` (อย่างน้อย 4 tests)
 1. `GET /` → 200 และมี `name="vcc"` ในหน้า
 2. `POST /` ด้วยค่าอ้างอิง → 200 และหน้าผลลัพธ์มี `8.052` (VCE)
 3. `POST /` ด้วย `r1=0` → 200, มีข้อความ error, ไม่มี stack trace
 4. `POST /` ด้วย `vcc=abc` → 200, มีข้อความ error
+5. `POST /` ด้วย `vcc=nan` หรือ `beta=inf` → 200 + ข้อความ "จำนวนจำกัด" และ **ไม่มี** badge Active
+6. `POST /` ด้วย `r2=5` (cutoff) และ `rc=15` (saturation) → หน้าเว็บมี badge และกล่อง warning จริง (A5 ระดับ HTTP)
 
 ### 7.7 ลำดับการทำงาน (vertical slices)
 
@@ -238,8 +246,12 @@ RTH = R1·R2/(R1+R2)
 
 ถ้าใช้สมการ forward-active ต่อใน cutoff จะได้ IB, IC, IE ติดลบ, VE ติดลบ,
 VB < VBE และ VC > VCC ซึ่งไม่มีความหมายทางฟิสิกส์ — เป็นอาการว่าแบบจำลองถูกใช้นอกขอบเขต
-จึงรายงาน **IB = IC = IE = 0, VE = 0, VB = VTH, VC = VCC, VCE = VCC − VTH**
+จึงรายงาน **IB = IC = IE = 0, VE = 0, VB = VTH, VC = VCC, VCE = VCC**
 พร้อม warning ระบุว่าเป็น cutoff และแบบจำลองใช้ไม่ได้
+
+เหตุผลที่ VCE = VCC (ไม่ใช่ VCC − VTH): เมื่อกระแสเป็นศูนย์จริง จะไม่มีแรงดันตกคร่อม RC
+(VC = VCC) และไม่มีแรงดันตกคร่อม RE (VE = 0) ดังนั้น VCE = VC − VE = VCC
+ถ้าใช้ VCC − VTH จะได้ตารางที่ VC − VE ≠ VCE ซึ่งขัดแย้งกันเองและอ่านผิดได้
 ส่วน **saturation ยังรายงานค่าที่คำนวณได้ตามจริง** เพราะกระแสยังไหลและตัวเลขคือหลักฐานว่าแบบจำลองเพี้ยน
 
 ### 10.2 หน่วยต่อปริมาณ (ไม่ใช้ mA กับทุกกระแส)

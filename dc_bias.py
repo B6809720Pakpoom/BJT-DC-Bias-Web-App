@@ -7,6 +7,7 @@ the UI layer is responsible for converting kΩ to Ω before calling in.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 SATURATION_MARGIN_V = 0.3
@@ -29,7 +30,30 @@ class DcBiasResult:
     warnings: tuple[str, ...]
 
 
-def _validate(vcc, r1, r2, rc, re, beta, vbe):
+def _validate(
+    vcc: float,
+    r1: float,
+    r2: float,
+    rc: float,
+    re: float,
+    beta: float,
+    vbe: float,
+) -> None:
+    named = {
+        "VCC": vcc,
+        "R1": r1,
+        "R2": r2,
+        "RC": rc,
+        "RE": re,
+        "β": beta,
+        "VBE": vbe,
+    }
+    for name, value in named.items():
+        if not math.isfinite(value):
+            raise ValueError(
+                f"{name} ต้องเป็นจำนวนจำกัด (finite) — พบค่า {value!r}"
+            )
+
     if vcc <= 0:
         raise ValueError("VCC ต้องมากกว่า 0 V")
     for name, value in (("R1", r1), ("R2", r2), ("RC", rc), ("RE", re)):
@@ -43,7 +67,24 @@ def _validate(vcc, r1, r2, rc, re, beta, vbe):
         )
 
 
-def calculate_dc_bias(vcc, r1, r2, rc, re, beta, vbe) -> DcBiasResult:
+def _check_outputs(**values: float) -> None:
+    """กันผลลัพธ์ล้นเป็น inf/nan แม้อินพุตทุกตัวจะเป็นจำนวนจำกัด"""
+    for name, value in values.items():
+        if not math.isfinite(value):
+            raise ValueError(
+                f"ผลลัพธ์ล้นช่วงตัวเลข ({name} = {value!r}) — กรุณาลดขนาดค่าอินพุต"
+            )
+
+
+def calculate_dc_bias(
+    vcc: float,
+    r1: float,
+    r2: float,
+    rc: float,
+    re: float,
+    beta: float,
+    vbe: float,
+) -> DcBiasResult:
     """Return the DC operating point for the given SI-unit inputs."""
     _validate(vcc, r1, r2, rc, re, beta, vbe)
 
@@ -51,6 +92,8 @@ def calculate_dc_bias(vcc, r1, r2, rc, re, beta, vbe) -> DcBiasResult:
     rth = r1 * r2 / (r1 + r2)
 
     if vth <= vbe:
+        # ไม่มีกระแสไหล → ไม่มีแรงดันตกคร่อม RC หรือ RE → VC = VCC, VE = 0, VCE = VCC
+        _check_outputs(vth=vth, rth=rth, vce=vcc)
         warnings = (
             f"VTH ({vth:.3f} V) ≤ VBE ({vbe:.3f} V) → ทรานซิสเตอร์อยู่ใน cutoff "
             "แบบจำลอง forward-active ใช้ไม่ได้ กระแสทุกตัวเป็นศูนย์",
@@ -64,7 +107,7 @@ def calculate_dc_bias(vcc, r1, r2, rc, re, beta, vbe) -> DcBiasResult:
             vb=vth,
             ve=0.0,
             vc=vcc,
-            vce=vcc - vth,
+            vce=vcc,
             region="cutoff",
             warnings=warnings,
         )
@@ -77,6 +120,8 @@ def calculate_dc_bias(vcc, r1, r2, rc, re, beta, vbe) -> DcBiasResult:
     vb = ve + vbe
     vc = vcc - ic * rc
     vce = vc - ve
+
+    _check_outputs(ib=ib, ic=ic, ie=ie, vb=vb, ve=ve, vc=vc, vce=vce)
 
     if vce <= SATURATION_MARGIN_V:
         region = "saturation"

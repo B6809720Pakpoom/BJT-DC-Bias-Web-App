@@ -29,7 +29,7 @@
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# รันเทสต์ทั้งหมด (ต้องได้ 21 tests OK)
+# รันเทสต์ทั้งหมด (ต้องได้ 33 tests OK)
 .\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 
 # รันเฉพาะชุด
@@ -40,8 +40,8 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m flask --app app run --debug
 ```
 
-> ต้องมี `-t .` เพราะ `tests/` เป็น package (มี `tests/__init__.py`) ถ้าไม่ใส่จะ import
-> `dc_bias` ไม่ได้
+> ต้องมี `-t .` เมื่อรันจาก root ของโปรเจกต์ถ้าเจอ ImportError (ใบงานใช้ `discover -s tests -v`
+> ซึ่งก็ผ่านเช่นกัน) เพราะ `tests/` เป็น package (มี `tests/__init__.py`)
 
 ## แผนที่ไฟล์
 

@@ -83,7 +83,7 @@ class RegionLogic(unittest.TestCase):
         self.assertEqual(r.ve, 0.0)
         self.assertEqual(r.vc, 12.0)
         self.assertAlmostEqual(r.vb, 12.0 * 5_000.0 / 105_000.0)
-        self.assertAlmostEqual(r.vce, 12.0 - r.vb)
+        self.assertEqual(r.vce, 12.0)
         self.assertTrue(r.warnings)
 
     def test_saturation_when_vce_at_or_below_margin(self):
@@ -109,6 +109,25 @@ class RegionLogic(unittest.TestCase):
                               rc=2_200.0, re=1_000.0, beta=100.0, vbe=0.70)
         joined = " ".join(r.warnings)
         self.assertIn("cutoff", joined)
+
+
+class NonFiniteInput(unittest.TestCase):
+    """nan / inf แปลงเป็น float ได้ แต่ใช้คำนวณไม่ได้"""
+
+    BASE = dict(vcc=12.0, r1=100_000.0, r2=22_000.0,
+                rc=2_200.0, re=1_000.0, beta=100.0, vbe=0.70)
+
+    def test_rejects_non_finite_values_in_every_field(self):
+        for value in (float("nan"), float("inf"), float("-inf")):
+            for key in self.BASE:
+                with self.subTest(key=key, value=value):
+                    with self.assertRaises(ValueError):
+                        calculate_dc_bias(**{**self.BASE, key: value})
+
+    def test_rejects_infinite_result_instead_of_reporting_active(self):
+        # ค่าที่ finite ทุกตัวแต่ผลลัพธ์ล้นเป็น inf ต้องไม่ถูกจัดเป็น active
+        with self.assertRaises(ValueError):
+            calculate_dc_bias(**{**self.BASE, "vcc": 1e308, "r1": 1e-300})
 
 
 if __name__ == "__main__":

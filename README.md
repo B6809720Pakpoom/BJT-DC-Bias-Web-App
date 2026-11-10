@@ -3,7 +3,7 @@
 Flask Web Application สำหรับคำนวณ **DC Operating Point** ของวงจร BJT Common-Emitter แบบ Voltage-Divider Bias
 รายวิชา **ENG29 2121 Computer Programming for Electrical Engineers** — Lab 02 (2/2569)
 
-> **สถานะ: พร้อมใช้งาน** — ผ่านการทดสอบ 21 tests (`unittest`) และตรวจผลกับค่าอ้างอิงอิสระแล้ว
+> **สถานะ: พร้อมใช้งาน** — ผ่านการทดสอบ 33 tests (`unittest`) และตรวจผลกับค่าอ้างอิงอิสระแล้ว
 > (ดู `docs/validation.md`)
 
 ## ขอบเขตของ Lab 2
@@ -44,10 +44,10 @@ python -m flask --app app run --debug
 python -m unittest discover -s tests -t . -v
 ```
 
-ผลที่ต้องได้: `Ran 21 tests ... OK` (12 tests ของสมการ + 9 tests ของ HTTP)
+ผลที่ต้องได้: `Ran 33 tests ... OK` (21 tests ของสมการ + 12 tests ของ HTTP)
 
-> ต้องมี `-t .` เพราะ `tests/` เป็น package (มี `tests/__init__.py`) ถ้าไม่ใส่จะ import
-> `dc_bias` ไม่ได้
+> คำสั่งนี้ใช้ได้ทั้งแบบมีและไม่มี `-t .` (ใบงานใช้ `discover -s tests -v` ก็ผ่าน)
+> แต่ถ้าเจอ ImportError ให้เติม `-t .` เพราะ `tests/` เป็น package
 
 ## โครงสร้างโปรเจกต์
 
