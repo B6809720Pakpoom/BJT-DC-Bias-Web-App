@@ -1,0 +1,217 @@
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --ink: #1f2933;
+  --muted: #64707d;
+  --line: #d7dde3;
+  --accent: #2563eb;
+  --ok: #0f7b3f;
+  --ok-bg: #e6f6ec;
+  --warn: #8a4b00;
+  --warn-bg: #fff3e0;
+  --err: #a11c1c;
+  --err-bg: #fdecec;
+  --cut: #4b5563;
+  --cut-bg: #eceff1;
+  --sat: #b45309;
+  --sat-bg: #fef0d9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif;
+  line-height: 1.55;
+}
+
+main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+header h1 {
+  margin: 0 0 4px;
+  font-size: 1.7rem;
+}
+
+header p {
+  margin: 0 0 24px;
+  color: var(--muted);
+}
+
+section,
+form {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+
+form fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+form legend {
+  padding: 0;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+input {
+  font: inherit;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: inherit;
+}
+
+input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.ohms {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  margin-top: 18px;
+  padding: 11px 20px;
+  font: inherit;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--accent);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.08);
+}
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+}
+
+.errors {
+  background: var(--err-bg);
+  border-color: var(--err);
+}
+
+.errors h2 {
+  color: var(--err);
+}
+
+.warnings {
+  background: var(--warn-bg);
+  border-color: var(--warn);
+}
+
+.warnings h2 {
+  color: var(--warn);
+}
+
+.errors ul,
+.warnings ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.region {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.region-active {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.region-cutoff {
+  color: var(--cut);
+  background: var(--cut-bg);
+}
+
+.region-saturation {
+  color: var(--sat);
+  background: var(--sat-bg);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+
+tbody th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+thead th {
+  background: #eef2f7;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+thead th:last-child {
+  text-align: right;
+}
+
+tbody th {
+  width: 50%;
+}
+
+tbody td {
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  main {
+    padding: 20px 14px 48px;
+  }
+
+  form fieldset {
+    grid-template-columns: 1fr;
+  }
+}

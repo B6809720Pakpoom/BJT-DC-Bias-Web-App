@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BJT DC Bias Calculator — ENG29 2121</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <main>
@@ -38,30 +39,44 @@
     <fieldset>
       <legend>พารามิเตอร์วงจร</legend>
 
-      <label for="vcc">VCC (V)</label>
-      <input type="text" id="vcc" name="vcc" value="{{ values.get('vcc', '12') }}" inputmode="decimal">
+      <div class="field">
+        <label for="vcc">VCC (V)</label>
+        <input type="text" id="vcc" name="vcc" value="{{ values.get('vcc', '12') }}" inputmode="decimal">
+      </div>
 
-      <label for="beta">β (hFE)</label>
-      <input type="text" id="beta" name="beta" value="{{ values.get('beta', '100') }}" inputmode="decimal">
+      <div class="field">
+        <label for="beta">β (hFE)</label>
+        <input type="text" id="beta" name="beta" value="{{ values.get('beta', '100') }}" inputmode="decimal">
+      </div>
 
-      <label for="vbe">VBE (V)</label>
-      <input type="text" id="vbe" name="vbe" value="{{ values.get('vbe', '0.70') }}" inputmode="decimal">
+      <div class="field">
+        <label for="vbe">VBE (V)</label>
+        <input type="text" id="vbe" name="vbe" value="{{ values.get('vbe', '0.70') }}" inputmode="decimal">
+      </div>
 
-      <label for="r1">R1 (kΩ)</label>
-      <input type="text" id="r1" name="r1" value="{{ values.get('r1', '100') }}" inputmode="decimal">
-      {% if ohms.get('r1') is not none %}<output class="ohms" for="r1">= {{ "%.0f"|format(ohms.r1) }} Ω</output>{% endif %}
+      <div class="field">
+        <label for="r1">R1 (kΩ)</label>
+        <input type="text" id="r1" name="r1" value="{{ values.get('r1', '100') }}" inputmode="decimal">
+        {% if ohms.get('r1') is not none %}<output class="ohms" for="r1">= {{ "%.0f"|format(ohms.r1) }} Ω</output>{% endif %}
+      </div>
 
-      <label for="r2">R2 (kΩ)</label>
-      <input type="text" id="r2" name="r2" value="{{ values.get('r2', '22') }}" inputmode="decimal">
-      {% if ohms.get('r2') is not none %}<output class="ohms" for="r2">= {{ "%.0f"|format(ohms.r2) }} Ω</output>{% endif %}
+      <div class="field">
+        <label for="r2">R2 (kΩ)</label>
+        <input type="text" id="r2" name="r2" value="{{ values.get('r2', '22') }}" inputmode="decimal">
+        {% if ohms.get('r2') is not none %}<output class="ohms" for="r2">= {{ "%.0f"|format(ohms.r2) }} Ω</output>{% endif %}
+      </div>
 
-      <label for="rc">RC (kΩ)</label>
-      <input type="text" id="rc" name="rc" value="{{ values.get('rc', '2.2') }}" inputmode="decimal">
-      {% if ohms.get('rc') is not none %}<output class="ohms" for="rc">= {{ "%.0f"|format(ohms.rc) }} Ω</output>{% endif %}
+      <div class="field">
+        <label for="rc">RC (kΩ)</label>
+        <input type="text" id="rc" name="rc" value="{{ values.get('rc', '2.2') }}" inputmode="decimal">
+        {% if ohms.get('rc') is not none %}<output class="ohms" for="rc">= {{ "%.0f"|format(ohms.rc) }} Ω</output>{% endif %}
+      </div>
 
-      <label for="re">RE (kΩ)</label>
-      <input type="text" id="re" name="re" value="{{ values.get('re', '1') }}" inputmode="decimal">
-      {% if ohms.get('re') is not none %}<output class="ohms" for="re">= {{ "%.0f"|format(ohms.re) }} Ω</output>{% endif %}
+      <div class="field">
+        <label for="re">RE (kΩ)</label>
+        <input type="text" id="re" name="re" value="{{ values.get('re', '1') }}" inputmode="decimal">
+        {% if ohms.get('re') is not none %}<output class="ohms" for="re">= {{ "%.0f"|format(ohms.re) }} Ω</output>{% endif %}
+      </div>
     </fieldset>
 
     <button type="submit">Calculate DC Bias</button>
@@ -73,6 +88,9 @@
     <h2>DC Bias Results</h2>
     <p class="region region-{{ result.region }}">{{ label }}</p>
     <table>
+      <thead>
+        <tr><th scope="col">พารามิเตอร์</th><th scope="col">ค่าที่คำนวณ</th></tr>
+      </thead>
       <tbody>
         <tr><th>VTH</th><td>{{ "%.3f"|format(result.vth) }} V</td></tr>
         <tr><th>RTH</th><td>{{ "%.2f"|format(result.rth / 1000) }} kΩ</td></tr>

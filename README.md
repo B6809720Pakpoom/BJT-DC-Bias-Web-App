@@ -3,8 +3,8 @@
 Flask Web Application สำหรับคำนวณ **DC Operating Point** ของวงจร BJT Common-Emitter แบบ Voltage-Divider Bias
 รายวิชา **ENG29 2121 Computer Programming for Electrical Engineers** — Lab 02 (2/2569)
 
-> **สถานะ: อยู่ระหว่างพัฒนา (Week 2)** — โครงสร้างโปรเจกต์และคำอธิบายด้านล่างคือเป้าหมายของ Lab 02
-> หัวข้อที่ยังไม่สร้างจะถูกเพิ่มตามลำดับงานใน Implementation Plan
+> **สถานะ: พร้อมใช้งาน** — ผ่านการทดสอบ 21 tests (`unittest`) และตรวจผลกับค่าอ้างอิงอิสระแล้ว
+> (ดู `docs/validation.md`)
 
 ## ขอบเขตของ Lab 2
 
@@ -41,8 +41,13 @@ python -m flask --app app run --debug
 ## การรัน Tests
 
 ```bash
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -t . -v
 ```
+
+ผลที่ต้องได้: `Ran 21 tests ... OK` (12 tests ของสมการ + 9 tests ของ HTTP)
+
+> ต้องมี `-t .` เพราะ `tests/` เป็น package (มี `tests/__init__.py`) ถ้าไม่ใส่จะ import
+> `dc_bias` ไม่ได้
 
 ## โครงสร้างโปรเจกต์
 
@@ -55,6 +60,7 @@ python -m unittest discover -s tests -v
 ├── static/
 │   └── style.css           # responsive layout
 ├── tests/
+│   ├── __init__.py         # ทำให้ discover -s tests -t . ทำงานได้
 │   ├── test_dc_bias.py     # unit tests for engineering logic
 │   └── test_web.py         # Flask HTTP route tests
 ├── docs/
@@ -91,6 +97,40 @@ VCE = VC − VE
 | 2.164 V | 18.03 kΩ | 12.30 µA | 1.230 mA | 1.242 mA | 1.242 V | 1.942 V | 9.294 V | 8.052 V |
 
 ใช้ค่าชุดนี้ตรวจสอบผลลัพธ์ของเว็บ (Acceptance test A3)
+
+## ตัวอย่างการใช้งาน
+
+1. เปิด <http://127.0.0.1:5000/>
+2. กรอกค่าตามตารางด้านบน (ตัวต้านทานเป็น **kΩ** — ใต้ช่องจะแสดงค่าที่แปลงเป็น Ω ให้ตรวจ)
+3. กด **Calculate DC Bias**
+
+ผลที่ได้:
+
+```
+Active
+VTH  2.164 V      RTH 18.03 kΩ
+IB  12.299 µA     IC  1.230 mA     IE  1.242 mA
+VB   1.942 V      VE  1.242 V      VC  9.294 V      VCE 8.052 V
+```
+
+### การจัดการข้อผิดพลาดและ warning
+
+| สถานการณ์ | สิ่งที่เกิดขึ้น |
+|---|---|
+| กรอกค่าที่ไม่ใช่ตัวเลข (เช่น `abc`, `12,0`) | หน้าเดิม + ข้อความ `กรุณากรอกตัวเลข…` (HTTP 200 ไม่ crash) |
+| ความต้านทาน ≤ 0 | ข้อความ `ค่าความต้านทานต้องมากกว่า 0 Ω (พบ R1 = 0 Ω)` |
+| `VTH ≤ VBE` | badge `Cutoff`, กระแสทุกตัวเป็น 0, พร้อม warning |
+| `VCE ≤ 0.3 V` | badge `Saturation`, พร้อม warning ว่า VCE ไม่น่าเชื่อถือ |
+
+## เอกสารเพิ่มเติม
+
+| ไฟล์ | เนื้อหา |
+|---|---|
+| `docs/design-note.md` | เหตุผลเบื้องหลังการออกแบบแต่ละจุด |
+| `docs/validation.md` | หลักฐานว่าผลตรงกับค่าที่คำนวณอิสระ (50 หลัก) |
+| `docs/reflection.md` | สิ่งที่เรียนรู้และข้อจำกัดของแบบจำลอง |
+| `AGENTS.md` | กติกาการแก้โค้ด (สำหรับ AI agent และผู้ร่วมงาน) |
+
 
 ## ข้อจำกัด
 
