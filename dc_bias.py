@@ -50,6 +50,25 @@ def calculate_dc_bias(vcc, r1, r2, rc, re, beta, vbe) -> DcBiasResult:
     vth = vcc * r2 / (r1 + r2)
     rth = r1 * r2 / (r1 + r2)
 
+    if vth <= vbe:
+        warnings = (
+            f"VTH ({vth:.3f} V) ≤ VBE ({vbe:.3f} V) → ทรานซิสเตอร์อยู่ใน cutoff "
+            "แบบจำลอง forward-active ใช้ไม่ได้ กระแสทุกตัวเป็นศูนย์",
+        )
+        return DcBiasResult(
+            vth=vth,
+            rth=rth,
+            ib=0.0,
+            ic=0.0,
+            ie=0.0,
+            vb=vth,
+            ve=0.0,
+            vc=vcc,
+            vce=vcc - vth,
+            region="cutoff",
+            warnings=warnings,
+        )
+
     ib = (vth - vbe) / (rth + (beta + 1) * re)
     ic = beta * ib
     ie = (beta + 1) * ib
@@ -58,6 +77,16 @@ def calculate_dc_bias(vcc, r1, r2, rc, re, beta, vbe) -> DcBiasResult:
     vb = ve + vbe
     vc = vcc - ic * rc
     vce = vc - ve
+
+    if vce <= SATURATION_MARGIN_V:
+        region = "saturation"
+        warnings = (
+            f"VCE ({vce:.3f} V) ≤ {SATURATION_MARGIN_V} V → ใกล้/อยู่ใน saturation "
+            "ค่า VCE ที่คำนวณได้ไม่น่าเชื่อถือ",
+        )
+    else:
+        region = "active"
+        warnings = ()
 
     return DcBiasResult(
         vth=vth,
@@ -69,6 +98,6 @@ def calculate_dc_bias(vcc, r1, r2, rc, re, beta, vbe) -> DcBiasResult:
         ve=ve,
         vc=vc,
         vce=vce,
-        region="active",
-        warnings=(),
+        region=region,
+        warnings=warnings,
     )

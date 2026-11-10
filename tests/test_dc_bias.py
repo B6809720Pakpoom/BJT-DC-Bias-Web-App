@@ -70,5 +70,46 @@ class Validation(unittest.TestCase):
         self.assertGreater(r.ic, 0.0)
 
 
+class RegionLogic(unittest.TestCase):
+    def test_cutoff_when_vth_not_above_vbe(self):
+        r = calculate_dc_bias(
+            vcc=12.0, r1=100_000.0, r2=5_000.0,
+            rc=2_200.0, re=1_000.0, beta=100.0, vbe=0.70,
+        )
+        self.assertEqual(r.region, "cutoff")
+        self.assertEqual(r.ib, 0.0)
+        self.assertEqual(r.ic, 0.0)
+        self.assertEqual(r.ie, 0.0)
+        self.assertEqual(r.ve, 0.0)
+        self.assertEqual(r.vc, 12.0)
+        self.assertAlmostEqual(r.vb, 12.0 * 5_000.0 / 105_000.0)
+        self.assertAlmostEqual(r.vce, 12.0 - r.vb)
+        self.assertTrue(r.warnings)
+
+    def test_saturation_when_vce_at_or_below_margin(self):
+        r = calculate_dc_bias(
+            vcc=12.0, r1=100_000.0, r2=22_000.0,
+            rc=15_000.0, re=1_000.0, beta=100.0, vbe=0.70,
+        )
+        self.assertEqual(r.region, "saturation")
+        self.assertLessEqual(r.vce, 0.3)
+        self.assertTrue(r.warnings)
+
+    def test_boundary_exactly_at_vbe_is_cutoff(self):
+        vcc, vbe = 12.0, 0.70
+        r2 = 1_000.0
+        r1 = vcc * r2 / vbe - r2
+        r = calculate_dc_bias(vcc=vcc, r1=r1, r2=r2, rc=2_200.0,
+                              re=1_000.0, beta=100.0, vbe=vbe)
+        self.assertEqual(r.region, "cutoff")
+        self.assertTrue(r.warnings)
+
+    def test_warning_text_mentions_limitation(self):
+        r = calculate_dc_bias(vcc=12.0, r1=100_000.0, r2=5_000.0,
+                              rc=2_200.0, re=1_000.0, beta=100.0, vbe=0.70)
+        joined = " ".join(r.warnings)
+        self.assertIn("cutoff", joined)
+
+
 if __name__ == "__main__":
     unittest.main()
