@@ -1,0 +1,74 @@
+import unittest
+
+from dc_bias import calculate_dc_bias
+
+TOL = 1e-9
+
+
+class ReferenceCase(unittest.TestCase):
+    def setUp(self):
+        self.r = calculate_dc_bias(
+            vcc=12.0, r1=100_000.0, r2=22_000.0,
+            rc=2_200.0, re=1_000.0, beta=100.0, vbe=0.70,
+        )
+
+    def assertRel(self, actual, expected):
+        self.assertAlmostEqual(actual, expected, delta=abs(expected) * TOL)
+
+    def test_reference_case_matches_independent_calculation(self):
+        self.assertRel(self.r.vth, 2.1639344262295084)
+        self.assertRel(self.r.rth, 18032.786885245903)
+        self.assertRel(self.r.ib, 1.2298581462608458e-05)
+        self.assertRel(self.r.ic, 0.0012298581462608458)
+        self.assertRel(self.r.ie, 0.0012421567277234543)
+        self.assertRel(self.r.ve, 1.2421567277234544)
+        self.assertRel(self.r.vb, 1.9421567277234544)
+        self.assertRel(self.r.vc, 9.29431207822614)
+        self.assertRel(self.r.vce, 8.052155350502685)
+
+    def test_reference_case_is_active(self):
+        self.assertEqual(self.r.region, "active")
+        self.assertEqual(self.r.warnings, ())
+
+
+class Validation(unittest.TestCase):
+    BASE = dict(vcc=12.0, r1=100_000.0, r2=22_000.0,
+                rc=2_200.0, re=1_000.0, beta=100.0, vbe=0.70)
+
+    def call(self, **overrides):
+        return calculate_dc_bias(**{**self.BASE, **overrides})
+
+    def test_rejects_zero_resistance(self):
+        for key in ("r1", "r2", "rc", "re"):
+            with self.subTest(key=key):
+                with self.assertRaises(ValueError):
+                    self.call(**{key: 0.0})
+
+    def test_rejects_negative_resistance(self):
+        with self.assertRaises(ValueError):
+            self.call(rc=-1.0)
+
+    def test_rejects_non_positive_beta(self):
+        for beta in (0.0, -5.0):
+            with self.subTest(beta=beta):
+                with self.assertRaises(ValueError):
+                    self.call(beta=beta)
+
+    def test_rejects_non_positive_vcc(self):
+        with self.assertRaises(ValueError):
+            self.call(vcc=0.0)
+
+    def test_rejects_vbe_outside_range(self):
+        for vbe in (-0.1, 12.0):
+            with self.subTest(vbe=vbe):
+                with self.assertRaises(ValueError):
+                    self.call(vbe=vbe)
+
+    def test_handles_very_large_vcc(self):
+        r = self.call(vcc=1_000_000.0)
+        self.assertEqual(r.region, "active")
+        self.assertGreater(r.ic, 0.0)
+
+
+if __name__ == "__main__":
+    unittest.main()
