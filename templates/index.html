@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BJT DC Bias Calculator — ENG29 2121</title>
+</head>
+<body>
+<main>
+  <header>
+    <h1>BJT DC Bias Calculator</h1>
+    <p>วงจร Common-Emitter แบบ Voltage-Divider Bias — คำนวณ DC Operating Point</p>
+  </header>
+
+  {% if errors %}
+  <section class="errors" role="alert">
+    <h2>ไม่สามารถคำนวณได้</h2>
+    <ul>
+      {% for message in errors %}
+      <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if warnings %}
+  <section class="warnings" role="alert">
+    <h2>ข้อจำกัดของแบบจำลอง</h2>
+    <ul>
+      {% for message in warnings %}
+      <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <form method="post" action="/">
+    <fieldset>
+      <legend>พารามิเตอร์วงจร</legend>
+
+      <label for="vcc">VCC (V)</label>
+      <input type="text" id="vcc" name="vcc" value="{{ form.vcc if form else '12' }}" inputmode="decimal">
+
+      <label for="beta">β (hFE)</label>
+      <input type="text" id="beta" name="beta" value="{{ form.beta if form else '100' }}" inputmode="decimal">
+
+      <label for="vbe">VBE (V)</label>
+      <input type="text" id="vbe" name="vbe" value="{{ form.vbe if form else '0.70' }}" inputmode="decimal">
+
+      <label for="r1">R1 (kΩ)</label>
+      <input type="text" id="r1" name="r1" value="{{ form.r1 if form else '100' }}" inputmode="decimal">
+
+      <label for="r2">R2 (kΩ)</label>
+      <input type="text" id="r2" name="r2" value="{{ form.r2 if form else '22' }}" inputmode="decimal">
+
+      <label for="rc">RC (kΩ)</label>
+      <input type="text" id="rc" name="rc" value="{{ form.rc if form else '2.2' }}" inputmode="decimal">
+
+      <label for="re">RE (kΩ)</label>
+      <input type="text" id="re" name="re" value="{{ form.re if form else '1' }}" inputmode="decimal">
+    </fieldset>
+
+    <button type="submit">Calculate DC Bias</button>
+  </form>
+
+  {% if result %}
+  <section class="results">
+    <h2>DC Bias Results</h2>
+    <p class="region region-{{ result.region }}">{{ result.region }}</p>
+    <table>
+      <tbody>
+        <tr><th>VTH</th><td>{{ "%.3f"|format(result.vth) }} V</td></tr>
+        <tr><th>RTH</th><td>{{ "%.2f"|format(result.rth / 1000) }} kΩ</td></tr>
+        <tr><th>IB</th><td>{{ "%.3f"|format(result.ib * 1e6) }} µA</td></tr>
+        <tr><th>IC</th><td>{{ "%.3f"|format(result.ic * 1000) }} mA</td></tr>
+        <tr><th>IE</th><td>{{ "%.3f"|format(result.ie * 1000) }} mA</td></tr>
+        <tr><th>VB</th><td>{{ "%.3f"|format(result.vb) }} V</td></tr>
+        <tr><th>VE</th><td>{{ "%.3f"|format(result.ve) }} V</td></tr>
+        <tr><th>VC</th><td>{{ "%.3f"|format(result.vc) }} V</td></tr>
+        <tr><th>VCE</th><td>{{ "%.3f"|format(result.vce) }} V</td></tr>
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+</main>
+</body>
+</html>
