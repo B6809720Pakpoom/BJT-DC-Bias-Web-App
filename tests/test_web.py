@@ -147,5 +147,69 @@ class Hardening(unittest.TestCase):
         self.assertEqual(match.group(1), "12.000")
 
 
+class BiasModes(unittest.TestCase):
+    """Lab 3 — mode selection, per-mode fields and browser-visible results."""
+
+    def setUp(self):
+        app.config["TESTING"] = True
+        self.client = app.test_client()
+
+    def post(self, **overrides):
+        return self.client.post("/", data={**VALID_FORM, **overrides})
+
+    def test_get_form_has_mode_selector_and_rb_field(self):
+        body = self.client.get("/").get_data(as_text=True)
+        self.assertIn('name="mode"', body)
+        for mode in ("divider", "fixed", "emitter"):
+            self.assertIn(f'value="{mode}"', body)
+        self.assertIn('name="rb"', body)
+
+    def test_A1_divider_is_unchanged(self):
+        body = self.post(mode="divider").get_data(as_text=True)
+        for expected in ("8.052", "1.230", "12.299", "18.03"):
+            self.assertIn(expected, body)
+
+    def test_A2_fixed(self):
+        body = self.post(mode="fixed", rb="1000").get_data(as_text=True)
+        self.assertIn("1.130", body)
+        self.assertIn("9.514", body)
+        self.assertIn("Fixed Bias", body)
+
+    def test_A3_emitter(self):
+        body = self.post(mode="emitter", rb="1000", re="1").get_data(as_text=True)
+        self.assertIn("1.026", body)
+        self.assertIn("8.705", body)
+        self.assertIn("Emitter Bias", body)
+
+    def test_A4_re_change_is_visible(self):
+        body = self.post(mode="emitter", rb="1000", re="2").get_data(as_text=True)
+        self.assertIn("0.940", body)
+        self.assertIn("8.033", body)
+
+    def test_A5_zero_rb_shows_error_and_no_result(self):
+        body = self.post(mode="fixed", rb="0").get_data(as_text=True)
+        self.assertIn("RB", error_section(body))
+        self.assertIn("มากกว่า 0", error_section(body))
+        self.assertNotIn('class="region region-', body)
+        self.assertNotIn("ผลลัพธ์ DC Bias", body)
+
+    def test_unknown_mode_is_rejected_not_guessed_as_divider(self):
+        body = self.post(mode="magic").get_data(as_text=True)
+        self.assertIn("โหมดไม่รู้จัก", error_section(body))
+        self.assertNotIn('class="region region-', body)
+        self.assertNotIn("8.052", body)
+
+    def test_fixed_mode_does_not_require_divider_only_fields(self):
+        body = self.post(mode="fixed", rb="1000", r1="", r2="").get_data(as_text=True)
+        self.assertIn("9.514", body)
+        self.assertNotIn("กรุณากรอกตัวเลข", error_section(body))
+
+    def test_error_does_not_reuse_previous_result(self):
+        self.post(mode="divider")
+        body = self.post(mode="fixed", rb="0").get_data(as_text=True)
+        self.assertNotIn("8.052", body)
+        self.assertNotIn('class="region region-active"', body)
+
+
 if __name__ == "__main__":
     unittest.main()

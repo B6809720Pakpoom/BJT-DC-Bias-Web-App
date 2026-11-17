@@ -156,3 +156,113 @@ VCE (-7.690 V) ≤ 0.3 V → ใกล้/อยู่ใน saturation ค่�
 ซึ่งตรงกับ `docs/validation.md` §2–§3 ที่คำนวณแยกอิสระสองวิธี (มือ + Decimal 50 หลัก)
 การแก้ให้ตรงภาพจะทำให้ขัดกับสมการที่ใบงานกำหนด จึงไม่แก้
 
+---
+
+# Lab 03 — เพิ่ม Fixed Bias / Emitter Bias และตรวจผลผ่าน Browser
+
+## 9. เครื่องมือที่ใช้ตรวจผลจริง
+
+| รายการ | สถานะ | หลักฐาน |
+|---|---|---|
+| Playwright MCP | **NOT RUN** | ตรวจแล้วไม่มี `node`/`npx` ในเครื่อง, ไม่มี `opencode.json` หรือ `opencode.jsonc` ที่รากโปรเจกต์ และไม่มี MCP ชื่อ `playwright` เชื่อมต่อใน session นี้ จึงไม่สามารถรันตาม Section 05 ของใบงานได้ |
+| OpenCode Browser (วิธีที่ใช้แทน) | **USED** | ใช้ `tools.browser.*` (`navigate`, `snapshot`, `select`, `fill`, `click`, `evaluate`, `screenshot`) เปิด `http://127.0.0.1:5000/` แล้วกรอก/กดปุ่มจริง ทุกกรณีเห็น HTTP `POST http://127.0.0.1:5000/` ใน network log |
+| Manual (ทวนเอง) | **USED** | เปิดเว็บซ้ำกรณี A2 ด้วยตนเองอีก 1 รอบ ผลตรงเดิม |
+
+เหตุผลที่เลือกใช้ OpenCode Browser ตามที่ใบงาน Section 05 อนุญาต: "ถ้าเครื่องของกลุ่มใช้ Playwright MCP ไม่ได้ภายในช่วงทดสอบ ให้บันทึก Playwright MCP เป็น `NOT RUN` พร้อมเหตุผล แล้วใช้ Browser Tool ที่มีใน OpenCode Desktop … ใช้กรณี A1–A5 และเกณฑ์ให้คะแนนเดียวกัน แต่ระบุวิธีจริง"
+
+## 10. เครื่องมือและขั้นตอนที่ใช้ตรวจ (ชื่อจริง)
+
+- `browser.navigate` เปิด URL, `browser.snapshot` อ่านโครงสร้างหน้า (ชื่อช่อง/ปุ่ม/ผล)
+- `browser.select` เลือกโหมด, `browser.fill` กรอกค่า, `browser.click` กด **Calculate DC Bias**
+- `browser.evaluate` อ่านข้อความที่ render จริงจาก DOM (ไม่ได้อ่านโค้ดหรือใช้ `curl` แทน)
+- `browser.screenshot` เก็บภาพหน้าเว็บ → `docs/evidence/A2-fixed-bias.png`
+- หลังส่งฟอร์มทุกครั้งอ่าน snapshot ใหม่เสมอ เพื่อไม่ให้ใช้ผลรอบก่อน
+
+## 11. ค่าคาดหมายอิสระก่อนรัน (ห้ามใช้ผลจากโค้ดที่กำลังตรวจ)
+
+ค่าที่ใช้ร่วมกันใน A1–A5: `VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V`
+เกณฑ์: `|ΔIC| ≤ 0.01 mA`, `|ΔVCE| ≤ 0.02 V` เทียบกับค่าที่ **ยังไม่ปัดเศษ**
+
+สคริปต์ `tools/independent_reference.py` ใช้ `decimal.Decimal` ความละเอียด 50 หลัก,
+ตั้ง `IE` เป็นตัวตั้งแทน `IB` และ **ไม่ import `dc_bias`/`app`** จึงเป็นเส้นทางอิสระ:
+
+```
+A1 Divider  (R1=100k, R2=22k, RE=1k): IC = 1.229858146 mA, VCE = 8.052155351 V
+A2 Fixed    (RB=1M):                  IC = 1.130000000 mA, VCE = 9.514000000 V
+A3 Emitter  (RB=1M, RE=1k):           IC = 1.026339691 mA, VCE = 8.705449591 V
+A4 Emitter  (RB=1M, RE=2k):           IC = 0.940099834 mA, VCE = 8.032778702 V
+A5 Fixed    (RB=0):                   RB ต้อง > 0 Ω → ต้องแจ้งข้อผิดพลาด
+```
+
+รันซ้ำได้ด้วย `.\.venv\Scripts\python.exe tools\independent_reference.py`
+
+## 12. ตารางผลจริง A1–A5
+
+| กรณี | โหมด/อินพุตที่กรอกจริง | คาดหมายก่อนรัน | เห็นจริงบนหน้าเว็บ | วิธีตรวจ | สถานะ |
+|---|---|---|---|---|---|
+| **A1 · โหมดเดิม** | Divider · `R1=100, R2=22, RE=1` kΩ (VCC/RC/β/VBE ใช้ค่าร่วมกัน) | ตรงกับผลก่อนแก้ Lab 2 และค่าอิสระ `IC=1.229858146 mA, VCE=8.052155351 V` | `IC = 1.230 mA`, `VCE = 8.052 V`, `IB = 12.299 µA`, `VTH = 2.164 V`, `RTH = 18.03 kΩ`, badge **Active**, หัวข้อ "Voltage Divider Bias" | OpenCode Browser | **PASS** (ΔIC=0.000142 mA, ΔVCE=0.000155 V) |
+| **A2 · Fixed** | Fixed · `RB=1000` kΩ (=1 MΩ); **ไม่กรอก RE/R1/R2** | ไม่ต้องใช้ RE → `IC=1.130000000 mA, VCE=9.514000000 V` | `IC = 1.130 mA`, `VCE = 9.514 V`, `IB = 11.300 µA`, `VE = 0.000 V`, `= 1,000,000 Ω`, หัวข้อ "Fixed Bias", ไม่มีแถว VTH/RTH | OpenCode Browser + ทวนซ้ำด้วย Manual | **PASS** (ΔIC=0, ΔVCE=0) |
+| **A3 · Emitter** | Emitter · `RB=1000` kΩ, `RE=1` kΩ | มีช่อง RE และใช้ค่า RE → `IC=1.026339691 mA, VCE=8.705449591 V` | `IC = 1.026 mA`, `VCE = 8.705 V`, `IE = 1.037 mA`, `= 1,000 Ω`, หัวข้อ "Emitter Bias" | OpenCode Browser | **PASS** (ΔIC=0.000340 mA, ΔVCE=0.000450 V) |
+| **A4 · เปลี่ยนค่าเดียว** | Emitter · เหมือน A3 ทุกอย่าง เปลี่ยน**เฉพาะ `RE` เป็น 2 kΩ** | ทำนายก่อนรัน: **IC ต้องลด** เพราะตัวส่วน `RB + (β+1)RE` เพิ่มขึ้น → คาด ~`0.940 mA` | `IC = 0.940 mA` (ลดจาก 1.026), `VCE = 8.033 V`, `= 2,000 Ω` ตรงอิสระ `0.940099834 mA / 8.032778702 V` | OpenCode Browser | **PASS** (ΔIC=0.000100 mA, ΔVCE=0.000221 V) |
+| **A5 · อินพุตผิด** | Fixed · `RB=0` | มีข้อความให้แก้ RB, เว็บไม่ล่ม, ไม่โชว์ผลของ A4 เป็นผลรอบนี้ | ข้อความจริง: `ไม่สามารถคำนวณได้` / `[Fixed Bias] ค่าความต้านทานต้องมากกว่า 0 Ω (พบ RB = 0 Ω)`; ไม่มี `.results`, ไม่มี region badge; ฟอร์มยังเก็บ `RB=0`; HTTP 200 ไม่มี traceback | OpenCode Browser | **PASS** |
+
+ข้อความ A5 มาจาก **Flask/backend** (prefix `[Fixed Bias]` จาก `MODE_LABELS` ใน `app.py`,
+ข้อความจาก `_validate_resistors()` ใน `dc_bias.py`) ไม่ใช่การที่ HTML ปฏิเสธการส่งฟอร์ม
+— network log มี `POST` จริง
+
+## 13. หลักฐานจากหน้าเว็บ
+
+ข้อความที่คัดจาก snapshot ของ A2 (รอบทวนซ้ำ):
+
+```
+ผลลัพธ์ DC Bias — Fixed Bias
+IB 11.300 µA | IC 1.130 mA | IE 1.141 mA
+VB 0.700 V   | VE 0.000 V  | VC 9.514 V | VCE 9.514 V
+```
+
+ภาพหน้าจอ full-page จาก OpenCode Browser: `docs/evidence/A2-fixed-bias.png`
+
+## 14. ไล่เส้นทางข้อมูล A4 (RE → สมการ)
+
+```
+templates/index.html  <input name="re"> ค่า "2" (kΩ)
+   ↓ POST
+app.py                mode = "emitter" → MODE_FIELDS["emitter"] = COMMON + ("rb","re")
+   ↓ parse_form()     re: 2 × 1000 = 2000.0 Ω   ← จุดแปลงหน่วยเดียว
+   ↓ CALCULATORS["emitter"] = calculate_emitter_bias
+dc_bias.py            ib = (12 − 0.70) / (1e6 + 101×2000)
+                      ic = 100×ib, ve = 101×ib×2000, vc = 12 − ic×2200, vce = vc − ve
+   ↓ describe()       ปัดเฉพาะตอนแสดง: IC 0.940 mA, VCE 8.033 V
+templates/index.html  ตารางผล + ป้าย "Emitter Bias"
+```
+
+## 15. ผลการรันเทสต์ (TDD ตาม `AGENTS.md`)
+
+- ก่อนแก้: `Ran 33 tests ... OK` (baseline Lab 2)
+- เขียนเทสต์ใหม่แล้วรันก่อนแก้โค้ด (RED): `Ran 43 tests ... FAILED (failures=8, errors=1)`
+- หลังแก้ (GREEN): `Ran 52 tests ... OK` (33 เดิม + 19 ใหม่)
+- รอบสุดท้ายหลังอัปเดตเอกสาร: ดูผลใน Section 16
+
+## 16. คำสั่งรันซ้ำและผลรอบสุดท้าย
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
+.\.venv\Scripts\python.exe tools\independent_reference.py
+```
+
+ผลที่ได้จริงรอบสุดท้าย (หลังอัปเดตเอกสาร):
+
+```
+Ran 52 tests in 0.047s
+
+OK
+```
+
+สคริปต์อิสระคืนค่าตาม Section 11 ทุกกรณี (A5 แจ้งว่า RB ต้อง > 0 Ω)
+
+## 17. สิ่งที่ต้องส่งเพิ่มโดยเจ้าของโปรเจกต์
+
+- Commit และ Push เองผ่าน GitHub Desktop (ตาม `AGENTS.md` ข้อ 9 ห้าม AI commit/push)
+- นำ **Commit SHA** หลัง push ไปกรอกใน `README.md` และแนบลิงก์ GitHub
+- ก่อน commit ให้ตรวจ `git diff` และ `git diff --staged` ว่ไม่มี `.venv`, `.env` หรือ credentials
+

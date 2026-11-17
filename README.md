@@ -1,22 +1,32 @@
 # BJT DC Bias Web App
 
-Flask Web Application สำหรับคำนวณ **DC Operating Point** ของวงจร BJT Common-Emitter แบบ Voltage-Divider Bias
-รายวิชา **ENG29 2121 Computer Programming for Electrical Engineers** — Lab 02 (2/2569)
+Flask Web Application สำหรับคำนวณ **DC Operating Point** ของวงจร BJT Common-Emitter ได้ 3 แบบ
+รายวิชา **ENG29 2121 Computer Programming for Electrical Engineers** — Lab 03 (2/2569)
 
-> **สถานะ: พร้อมใช้งาน** — ผ่านการทดสอบ 33 tests (`unittest`) และตรวจผลกับค่าอ้างอิงอิสระแล้ว
+ต่อยอดจาก Lab 02 (Voltage Divider Bias เดิม) โดยเพิ่ม **Fixed Bias** และ **Emitter Bias แบบแหล่งจ่ายเดียว**
+ผลของ Voltage Divider เมื่อกรอกค่าเดิมยังเหมือนเดิมทุกประการ
+
+> **สถานะ: พร้อมใช้งาน** — ผ่านการทดสอบ 52 tests (`unittest`) และตรวจผลจริงผ่าน OpenCode Browser ตามตาราง A1–A5 แล้ว
 > (ดู `docs/validation.md`)
 
-## ขอบเขตของ Lab 2
+- GitHub: <https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App>
+- Commit SHA ของ Lab 3: *(เจ้าของโปรเจกต์กรอกหลัง commit ผ่าน GitHub Desktop)*
 
-- รับค่าอินพุต: `VCC`, `R1`, `R2`, `RC`, `RE`, `β`, `VBE`
-- คำนวณด้วย Python Backend: `VB`, `VE`, `VC`, `VCE`, `IC` (แสดง `IB`, `IE` ด้วย)
-- ตรวจสอบอินพุตและแสดง warning เมื่ออยู่นอกช่วง Forward-Active
-- มี automated tests ทั้งระดับ engineering logic และ HTTP route
+## ขอบเขตของ Lab 3
+
+- เลือกโหมดได้ 3 แบบ: `divider`, `fixed`, `emitter`
+- รับเฉพาะอินพุตที่วงจรที่เลือกใช้:
+  - Fixed: `VCC`, `RB`, `RC`, `β`, `VBE`
+  - Emitter: `VCC`, `RB`, `RE`, `RC`, `β`, `VBE`
+  - Divider: `VCC`, `R1`, `R2`, `RE`, `RC`, `β`, `VBE`
+- คำนวณด้วย Python Backend: `IB`, `IC`, `IE`, `VB`, `VE`, `VC`, `VCE` และ region
+- ตรวจอินพุตผิด/ไม่ครบ/โหมดไม่รู้จัก และแสดงข้อความเป็นภาษาไทย
+- ไม่โชว์ผลรอบก่อนเป็นผลของรอบที่กรอกผิด
 - **ไม่รวม** AC, Transient, Signal Generator, SPICE Solver หรือ Circuit Editor
 
 ## ความต้องการของระบบ
 
-- Python 3.10 ขึ้นไป (ทดสอบบน Python 3.15)
+- Python 3.10 ขึ้นไป (ทดสอบบน Python 3.14)
 - Flask (ดู `requirements.txt`)
 
 ## การติดตั้งและรัน
@@ -44,7 +54,7 @@ python -m flask --app app run --debug
 python -m unittest discover -s tests -t . -v
 ```
 
-ผลที่ต้องได้: `Ran 33 tests ... OK` (21 tests ของสมการ + 12 tests ของ HTTP)
+ผลที่ต้องได้: `Ran 52 tests ... OK` (33 tests เดิมของ Lab 2 + 19 tests ใหม่ของ Lab 3)
 
 > คำสั่งนี้ใช้ได้ทั้งแบบมีและไม่มี `-t .` (ใบงานใช้ `discover -s tests -v` ก็ผ่าน)
 > แต่ถ้าเจอ ImportError ให้เติม `-t .` เพราะ `tests/` เป็น package
@@ -53,19 +63,25 @@ python -m unittest discover -s tests -t . -v
 
 ```
 .
-├── app.py                  # Flask application & HTTP routes
-├── dc_bias.py              # engineering calculations (ไม่รู้จัก HTML/HTTP)
+├── app.py                  # Flask route, เลือกโหมด, แปลงหน่วย, จัดการ error
+├── dc_bias.py              # สมการทั้ง 3 โหมด (บริสุทธิ์ ไม่รู้จัก HTTP/kΩ)
 ├── templates/
-│   └── index.html          # input form + DC results (Jinja)
+│   └── index.html          # dropdown โหมด + input form + ผลลัพธ์ (Jinja)
 ├── static/
 │   └── style.css           # responsive layout
 ├── tests/
-│   ├── __init__.py         # ทำให้ discover -s tests -t . ทำงานได้
-│   ├── test_dc_bias.py     # unit tests for engineering logic
-│   └── test_web.py         # Flask HTTP route tests
+│   ├── __init__.py
+│   ├── test_dc_bias.py     # unit tests เดิมของ Divider
+│   ├── test_bias_modes.py  # unit tests ของ Fixed/Emitter (ใหม่ Lab 3)
+│   └── test_web.py         # Flask HTTP route tests + A1–A5
+├── tools/
+│   └── independent_reference.py  # ค่าอ้างอิงอิสระ Decimal 50 หลัก
 ├── docs/
 │   ├── design-note.md
-│   ├── validation.md
+│   ├── validation.md       # ตาราง A1–A5 + หลักฐาน browser
+│   ├── submission.md       # สรุปสิ่งที่ส่ง + วิธี commit/push
+│   ├── evidence/
+│   │   └── A2-fixed-bias.png
 │   └── reflection.md
 ├── requirements.txt
 ├── AGENTS.md
@@ -77,34 +93,41 @@ python -m unittest discover -s tests -t . -v
 Forward-Active Approximation (β คงที่, VBE คงที่):
 
 ```
-VTH = VCC · R2 / (R1 + R2)
-RTH = R1 · R2 / (R1 + R2)
-IB  = (VTH − VBE) / (RTH + (β + 1)·RE)
-IC  = β · IB
-IE  = (β + 1) · IB
-VE  = IE · RE
-VB  = VE + VBE
-VC  = VCC − IC · RC
-VCE = VC − VE
+Fixed:    IB = (VCC − VBE) / RB
+Emitter:  IB = (VCC − VBE) / [RB + (β + 1)·RE]
+Divider:  VTH = VCC·R2/(R1+R2),  RTH = R1·R2/(R1+R2)
+          IB  = (VTH − VBE) / [RTH + (β + 1)·RE]
+
+ใช้ร่วมกัน: IC = β·IB,  IE = (β+1)·IB
+          VE = IE·RE (Fixed ใช้ VE = 0),  VB = VE + VBE
+          VC = VCC − IC·RC,  VCE = VC − VE
 ```
+
+การแปลง kΩ → Ω เกิดที่ `app.py` ใน `parse_form()` จุดเดียว (1 MΩ = 1000 kΩ = 1,000,000 Ω)
 
 ### ข้อมูลทดลองอ้างอิง
 
-`VCC = 12 V, R1 = 100 kΩ, R2 = 22 kΩ, RC = 2.2 kΩ, RE = 1 kΩ, β = 100, VBE = 0.70 V`
+ค่าที่ใช้ร่วมกัน: `VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V`
 
-| VTH | RTH | IB | IC | IE | VE | VB | VC | VCE |
-|---|---|---|---|---|---|---|---|---|
-| 2.164 V | 18.03 kΩ | 12.30 µA | 1.230 mA | 1.242 mA | 1.242 V | 1.942 V | 9.294 V | 8.052 V |
+| กรณี | อินพุตเพิ่ม | IC | VCE |
+|---|---|---|---|
+| A1 Divider | R1=100 kΩ, R2=22 kΩ, RE=1 kΩ | 1.230 mA | 8.052 V |
+| A2 Fixed | RB=1000 kΩ | 1.130 mA | 9.514 V |
+| A3 Emitter | RB=1000 kΩ, RE=1 kΩ | 1.026 mA | 8.705 V |
+| A4 Emitter | RB=1000 kΩ, RE=2 kΩ | 0.940 mA | 8.033 V |
+| A5 Fixed | RB=0 | ต้องแจ้งข้อผิดพลาด | — |
 
-ใช้ค่าชุดนี้ตรวจสอบผลลัพธ์ของเว็บ (Acceptance test A3)
+ค่าอ้างอิงอิสระ (ยังไม่ปัดเศษ, `Decimal` 50 หลัก) และตาราง A1–A5 อยู่ใน `docs/validation.md`
 
 ## ตัวอย่างการใช้งาน
 
 1. เปิด <http://127.0.0.1:5000/>
-2. กรอกค่าตามตารางด้านบน (ตัวต้านทานเป็น **kΩ** — ใต้ช่องจะแสดงค่าที่แปลงเป็น Ω ให้ตรวจ)
-3. กด **Calculate DC Bias**
+2. เลือก **โหมดวงจร** จาก dropdown (ค่าเริ่มต้นคือ Voltage Divider Bias)
+3. กรอกค่าตามหน่วยบนฟอร์ม (ตัวต้านทานเป็น **kΩ** — ใต้ช่องจะแสดงค่าที่แปลงเป็น Ω ให้ตรวจ)
+   - ช่อง `RB` จะโผล่เฉพาะโหมด Fixed/Emitter; `R1`/`R2` โผล่เฉพาะ Divider
+4. กด **Calculate DC Bias**
 
-ผลที่ได้:
+ผลของ A1 (Divider ค่าเดิม):
 
 ```
 Active
@@ -113,29 +136,42 @@ IB  12.299 µA     IC  1.230 mA     IE  1.242 mA
 VB   1.942 V      VE  1.242 V      VC  9.294 V      VCE 8.052 V
 ```
 
+ผลของ A2 (Fixed, RB=1000 kΩ):
+
+```
+Fixed Bias
+IB  11.300 µA     IC  1.130 mA     IE  1.141 mA
+VB   0.700 V      VE  0.000 V      VC  9.514 V      VCE 9.514 V
+```
+
 ### การจัดการข้อผิดพลาดและ warning
 
 | สถานการณ์ | สิ่งที่เกิดขึ้น |
 |---|---|
-| กรอกค่าที่ไม่ใช่ตัวเลข (เช่น `abc`, `12,0`) | หน้าเดิม + ข้อความ `กรุณากรอกตัวเลข…` (HTTP 200 ไม่ crash) |
-| ความต้านทาน ≤ 0 | ข้อความ `ค่าความต้านทานต้องมากกว่า 0 Ω (พบ R1 = 0 Ω)` |
-| `VTH ≤ VBE` | badge `Cutoff`, กระแสทุกตัวเป็น 0, พร้อม warning |
+| กรอกค่าที่ไม่ใช่ตัวเลข (เช่น `abc`, `12,0`) | หน้าเดิม + ข้อความ `ช่องต่อไปนี้ไม่ใช่ตัวเลข…` (HTTP 200 ไม่ crash) |
+| ความต้านทาน ≤ 0 | `ค่าความต้านทานต้องมากกว่า 0 Ω (พบ RB = 0 Ω)` (มี prefix `[Fixed Bias]`) |
+| โหมดไม่รู้จัก | `โหมดไม่รู้จัก … — เลือก Voltage Divider, Fixed หรือ Emitter Bias` (ไม่เดาเป็น Divider) |
+| กรอกไม่ครบตามโหมดที่เลือก | `กรุณากรอกตัวเลขให้ครบทุกช่อง: …` |
+| `VTH ≤ VBE` หรือ IB ≤ 0 | badge `Cutoff`, กระแสทุกตัวเป็น 0, พร้อม warning |
 | `VCE ≤ 0.3 V` | badge `Saturation`, พร้อม warning ว่า VCE ไม่น่าเชื่อถือ |
+
+ข้อผิดพลาดจะแสดงในกล่องแจ้งเตือน **โดยไม่มีตารางผลลัพธ์/region badge ค้างจากรอบก่อน**
 
 ## เอกสารเพิ่มเติม
 
 | ไฟล์ | เนื้อหา |
 |---|---|
-| `docs/design-note.md` | เหตุผลเบื้องหลังการออกแบบแต่ละจุด |
-| `docs/validation.md` | หลักฐานว่าผลตรงกับค่าที่คำนวณอิสระ (50 หลัก) |
-| `docs/reflection.md` | สิ่งที่เรียนรู้และข้อจำกัดของแบบจำลอง |
+| `docs/design-note.md` | เหตุผลเบื้องหลังการออกแบบแต่ละจุด (รวม mode dispatch) |
+| `docs/validation.md` | หลักฐานว่าผลตรงกับค่าอิสระ + ตาราง A1–A5 จาก browser จริง |
+| `docs/submission.md` | สรุปสิ่งที่ส่ง (URL, SHA, ตาราง A1–A5, ค่าอิสระ, วิธี push) |
+| `docs/reflection.md` | สิ่งที่เรียนรู้ ข้อจำกัด และคำตอบคำถามปิด Lab |
 | `AGENTS.md` | กติกาการแก้โค้ด (สำหรับ AI agent และผู้ร่วมงาน) |
-
 
 ## ข้อจำกัด
 
 - ผลลัพธ์ใช้ได้เฉพาะเมื่อ transistor อยู่ใน Forward-Active Region
-- ถ้า `VTH ≤ VBE` (cutoff) หรือ `VCE` ต่ำจนใกล้ saturation แอปต้องแสดง warning และไม่รายงานว่าแบบจำลองใช้ได้
+- ถ้า IB ≤ 0 (cutoff) หรือ VCE ต่ำจนใกล้ saturation แอปต้องแสดง warning และไม่รายงานว่าแบบจำลองใช้ได้
+- เกณฑ์เตือน saturation ใช้ margin 0.3 V แบบเดิมของ Lab 2 (เข้มงวดกว่า 0.2 V ที่ใบงานกล่าวถึง จึงยังเตือนในกรณีที่ใบงานต้องการ)
 - ไม่ใช่ ngspice และไม่ใช่ผลจำลองเชิงพาณิชย์
 
 ## ผู้จัดทำ

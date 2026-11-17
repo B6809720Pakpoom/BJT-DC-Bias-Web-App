@@ -10,7 +10,7 @@
 <main>
   <header>
     <h1>BJT DC Bias Calculator</h1>
-    <p>วงจร Common-Emitter แบบ Voltage-Divider Bias — คำนวณ DC Operating Point</p>
+    <p>วงจร Common-Emitter — เลือก Voltage Divider, Fixed หรือ Emitter Bias เพื่อหา DC Operating Point</p>
     <p class="assumption">
       แบบจำลอง: Forward-Active Approximation (β คงที่, VBE คงที่, ไม่คิด Early effect)
     </p>
@@ -40,6 +40,19 @@
 
   <form method="post" action="/">
     <fieldset>
+      <legend>เลือกวงจรไบอัส</legend>
+      <div class="field mode-field">
+        <label for="mode">โหมดวงจร</label>
+        <select id="mode" name="mode">
+          <option value="divider"{% if mode != 'fixed' and mode != 'emitter' %} selected{% endif %}>Voltage Divider Bias</option>
+          <option value="fixed"{% if mode == 'fixed' %} selected{% endif %}>Fixed Bias</option>
+          <option value="emitter"{% if mode == 'emitter' %} selected{% endif %}>Emitter Bias</option>
+        </select>
+        <p class="hint">เปลี่ยนโหมดแล้วกด Calculate ได้เลย — เฉพาะช่องที่วงจรใช้จะถูกตรวจและนำไปคำนวณ</p>
+      </div>
+    </fieldset>
+
+    <fieldset>
       <legend>พารามิเตอร์วงจร</legend>
 
       <div class="field">
@@ -57,13 +70,19 @@
         <input type="text" id="vbe" name="vbe" value="{{ values.get('vbe', '0.70') }}" inputmode="decimal">
       </div>
 
-      <div class="field">
+      <div class="field" data-modes="fixed emitter">
+        <label for="rb">RB (kΩ)</label>
+        <input type="text" id="rb" name="rb" value="{{ values.get('rb', '1000') }}" inputmode="decimal">
+        {% if ohms.get('rb') is not none %}<output class="ohms" for="rb">= {{ ohms.rb }} Ω</output>{% endif %}
+      </div>
+
+      <div class="field" data-modes="divider">
         <label for="r1">R1 (kΩ)</label>
         <input type="text" id="r1" name="r1" value="{{ values.get('r1', '100') }}" inputmode="decimal">
         {% if ohms.get('r1') is not none %}<output class="ohms" for="r1">= {{ ohms.r1 }} Ω</output>{% endif %}
       </div>
 
-      <div class="field">
+      <div class="field" data-modes="divider">
         <label for="r2">R2 (kΩ)</label>
         <input type="text" id="r2" name="r2" value="{{ values.get('r2', '22') }}" inputmode="decimal">
         {% if ohms.get('r2') is not none %}<output class="ohms" for="r2">= {{ ohms.r2 }} Ω</output>{% endif %}
@@ -75,7 +94,7 @@
         {% if ohms.get('rc') is not none %}<output class="ohms" for="rc">= {{ ohms.rc }} Ω</output>{% endif %}
       </div>
 
-      <div class="field">
+      <div class="field" data-modes="divider emitter">
         <label for="re">RE (kΩ)</label>
         <input type="text" id="re" name="re" value="{{ values.get('re', '1') }}" inputmode="decimal">
         {% if ohms.get('re') is not none %}<output class="ohms" for="re">= {{ ohms.re }} Ω</output>{% endif %}
@@ -87,7 +106,7 @@
 
   {% if display %}
   <section class="results">
-    <h2>ผลลัพธ์ DC Bias</h2>
+    <h2>ผลลัพธ์ DC Bias — {{ display.mode_label }}</h2>
     <p class="region region-{{ display.region_class }}">{{ display.region_label }}</p>
     <table>
       <thead>
@@ -102,5 +121,22 @@
   </section>
   {% endif %}
 </main>
+
+<script>
+  // หน้าที่เดียวของ JavaScript คือซ่อน/โชว์ช่องตามโหมดที่เลือก
+  // ไม่มีการคำนวณหรือแปลงหน่วยฝั่งเบราว์เซอร์ (สมการอยู่ใน dc_bias.py เท่านั้น)
+  (function () {
+    var select = document.getElementById("mode");
+    var fields = document.querySelectorAll("[data-modes]");
+    function sync() {
+      fields.forEach(function (field) {
+        var allowed = field.getAttribute("data-modes").split(" ");
+        field.hidden = allowed.indexOf(select.value) === -1;
+      });
+    }
+    select.addEventListener("change", sync);
+    sync();
+  })();
+</script>
 </body>
 </html>
