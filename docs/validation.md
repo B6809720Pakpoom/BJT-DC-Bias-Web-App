@@ -365,6 +365,14 @@ $env:Path = 'C:\Users\B6809720\AppData\Local\Programs\ngspice-47\Spice64\bin;' +
 ## 26. การส่งงาน
 
 ตาม `AGENTS.md` ข้อ 9 **เจ้าของโปรเจกต์เป็นคน commit/push เองผ่าน GitHub Desktop** (AI ไม่รัน `git commit`/`git push`)
-Commit ล่าสุดที่ push แล้ว: `6c0881a157a41f0ef8684568a3ab7a8a5e29ed5d`
-การแก้เพิ่มรอบนี้ (phase/cutoff/inversion/screenshot) ยังเป็น working tree ที่รอเจ้าของโปรเจกต์ commit อยู่
+Commit ล่าสุดที่ push แล้ว: `9d3549fc5995cbca3483f35c7bedd082577f59b9` (`docs: note superpowers skill not run`)
+`git status` ขึ้นแค่ `## lab04-ngspice...origin/lab04-ngspice` → working tree สะอาด ตรง remote แล้ว
+
+## 27. บันทึก 3–5 บรรทัด — AI ทำอะไร / นักศึกษาตรวจอะไรเอง
+
+- **AI สร้าง/แก้:** `spice_engine.py` (สร้าง netlist, เรียก `ngspice_con.exe` ด้วย `subprocess.run` แบบ list + timeout, parse `run.raw` ทั้ง real/complex), `app.py` (route `.op/.ac/.tran`, `make_plot`, reference/provenance), `templates/index.html`, `static/style.css`, `tests/` และเอกสารนี้
+- **AI ตรวจด้วย tool:** `Ran 65 tests ... OK`, OpenCode Browser B1–B8, Chrome headless สำหรับ `captures/*.png` — แต่ผลทั้งหมดถูกอ่านจากหน้าเว็บ/engine จริง ไม่ใช่ค่าที่แต่งขึ้น
+- **นักศึกษาตรวจ/ยืนยันเอง:** เปิดแท็บที่ focus ดูหน้าจอจริง, ขอ screenshot, อนุมัติ plan และ BJT model ที่ใช้แทน Starter Kit, เป็นคน commit/push ทุก commit รวม `9d3549f`
+- **ไม่มี before/after ของ Impeccable** เพราะ skill ไม่พร้อม → ปรับ UI ด้วย CSS ใน commit `f0a3853` และระบุ `NOT RUN` ไว้ในข้อ 20 ตามตรง
+- ข้อความ/ตัวเลขที่เห็นตรงกับ ngspice log และ netlist ที่แสดงใน `<details>` ทุกครั้ง ถ้า engine fail ระบบไม่โชว์ผลเก่าหรือ badge success ปลอม
 
