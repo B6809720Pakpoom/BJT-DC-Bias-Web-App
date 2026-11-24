@@ -299,6 +299,7 @@ OK
 | เครื่องมือ | สถานะ | เหตุผล/หลักฐาน |
 |---|---|---|
 | Playwright MCP | **NOT RUN** | ไม่มี MCP ชื่อ `playwright` เชื่อมต่อใน session นี้ (ตรวจแล้วเช่นเดียวกับ Lab 3) |
+| Superpowers skill | **NOT RUN** | ไม่มี skill/channel ชื่อ `superpowers` ใน session นี้ (available มีแค่ `browser`, `opencode`, `report`) → ใช้ integration plan → รอเจ้าของโปรเจกต์อนุมัติ → implement → verify แทน ตามเจตนาข้อ 07 |
 | OpenCode Browser | **USED** | `tools.browser.*` (`navigate`, `snapshot`, `select`, `fill`, `evaluate`, `requestSubmit()` ผ่าน JS จริง) กดฟอร์มที่ `http://127.0.0.1:5000/` และอ่าน DOM ที่ render จริง |
 | Chrome headless | **USED (เฉพาะ screenshot)** | `chrome.exe --headless=new --screenshot=...` โหลดหน้าเว็บจริงผ่านฟอร์มที่ auto-POST ไปยัง Flask → ได้ภาพ `captures/*.png`; **ไม่ได้อ้างว่าเป็น Playwright MCP** |
 | Impeccable | **NOT RUN** | ไม่มี skill/channel ชื่อ Impeccable และเครื่องไม่มี `node`/`npx` (`npx impeccable install` ทำไม่ได้) → ปรับ UI ด้วย CSS ทั่วไปแทนและระบุตรง ๆ ที่นี่ |
@@ -345,7 +346,7 @@ OK
 ## 24. ข้อจำกัดที่ต้องแจ้งอาจารย์
 
 - ไม่มี Starter Kit จากอาจารย์ → ใช้ BJT model ที่ระบุในข้อ 19 (เจ้าของโปรเจกต์อนุมัติแล้ว)
-- Playwright MCP และ Impeccable ไม่พร้อมใน session นี้ → ใช้ OpenCode Browser + Chrome headless และ CSS แทน ตามข้อ 20
+- Playwright MCP, Impeccable และ Superpowers skill ไม่พร้อมใน session นี้ → ใช้ OpenCode Browser + Chrome headless, CSS และ integration plan/approval workflow แทน ตามข้อ 20
 - **ไม่มีจุดตัด −3 dB ในช่วง 10 Hz–10 MHz** ของ model นี้ (VAF=0, CJE/CJC/TF เล็ก) → แสดง `not determined in sweep range` ตามใบงาน ไม่ได้สร้าง fL/fH ขึ้นมาเอง
 - ผล SPICE ของ `.op` ต่างจาก analytical เล็กน้อย (0.006 V / 0.002 mA) เพราะ SPICE ใช้โมเดล exponential จริง ไม่ใช่สมการ VBE คงที่ — **ไม่ถือว่าเป็นข้อผิดพลาด** และไม่ได้นำค่าทั้งสองมาปนกัน
 - `ngspice` ไม่มี installer ที่สร้าง icon → ติดตั้งแบบ 7z และเพิ่ม path ลง `PATH` ของ user

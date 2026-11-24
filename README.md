@@ -43,7 +43,7 @@ ngspice_con.exe --version   # ต้องเห็น ** ngspice-47
 > `.model QNPN NPN(IS=2e-15 BF=100 VAF=0 CJE=10p CJC=5p TF=0.3n)`
 > (เจ้าของโปรเจกต์อนุมัติแล้ว) — แสดงอยู่ในหน้าเว็บและใน `docs/validation.md` ข้อ 19
 
-Playwright MCP และ Impeccable ไม่พร้อมใน session นี้ (ไม่มี MCP/skill และไม่มี `node`/`npx`) จึงใช้ OpenCode Browser + Chrome headless (เฉพาะ screenshot) + CSS แทน และบันทึก `NOT RUN` ไว้ใน `docs/validation.md` ข้อ 20
+Playwright MCP, Impeccable และ Superpowers skill ไม่พร้อมใน session นี้ (ไม่มี MCP/skill และไม่มี `node`/`npx`) จึงใช้ OpenCode Browser + Chrome headless (เฉพาะ screenshot) + CSS + integration plan/approval workflow แทน และบันทึก `NOT RUN` ไว้ใน `docs/validation.md` ข้อ 20
 
 ## ขอบเขตของ Lab 3
 
