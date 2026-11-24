@@ -245,6 +245,117 @@ select:focus {
   display: none !important;
 }
 
+.analysis-field {
+  grid-column: 1 / -1;
+}
+
+.provenance {
+  margin: 10px 0 14px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.provenance code {
+  background: #eef2f7;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.spice-results {
+  border-color: var(--accent);
+}
+
+.spice-results .badge,
+.spice-results .status {
+  display: inline-block;
+  margin: 0 6px 6px 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge {
+  color: #33415c;
+  background: #eef2f7;
+}
+
+.status-success {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.status-failed {
+  color: var(--err);
+  background: var(--err-bg);
+}
+
+.spice-results details {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.spice-results summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.spice-results pre {
+  overflow-x: auto;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.plot {
+  margin: 18px 0 0;
+}
+
+.plot figcaption {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.plot text {
+  font-family: inherit;
+}
+
+.legend {
+  display: flex;
+  gap: 18px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.key::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+  background: var(--accent);
+}
+
+.key-second::before {
+  background: #94a3b8;
+}
+
 @media (max-width: 640px) {
   main {
     padding: 20px 14px 48px;

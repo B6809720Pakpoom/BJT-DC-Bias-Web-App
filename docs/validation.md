@@ -266,3 +266,91 @@ OK
 - นำ **Commit SHA** หลัง push ไปกรอกใน `README.md` และแนบลิงก์ GitHub
 - ก่อน commit ให้ตรวจ `git diff` และ `git diff --staged` ว่ไม่มี `.venv`, `.env` หรือ credentials
 
+---
+
+# Lab 04 — BJT CE Amplifier Simulator ด้วย ngspice
+
+## 18. สภาพแวดล้อมจริงที่ใช้
+
+| รายการ | ค่าที่ตรวจได้จริง |
+|---|---|
+| Repo | `git clone https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App.git` (clone ใหม่จริง แล้วเอา `.git` มาแทน working tree เดิม งานค้างไม่หาย) |
+| Branch | `lab04-ngspice` → tracking `origin/lab04-ngspice` (branch นี้ publish แล้ว) |
+| Python | 3.15.2 |
+| Flask | 3.1.3 ใน `.venv` |
+| ngspice | **ngspice-47** (build 11 Aug 2026), `ngspice_con.exe` โหมด batch |
+| ตำแหน่ง engine | `C:\Users\B6809720\AppData\Local\Programs\ngspice-47\Spice64\bin\` |
+| วิธีติดตั้ง | โหลด `ngspice-47_64.7z` จาก SourceForge แล้วแตกด้วย 7-Zip (winget ไม่มี package นี้) |
+
+## 19. BJT model ที่ใช้ (ต้องระบุเพราะไม่มี Starter Kit จากอาจารย์)
+
+```
+.model QNPN NPN(IS=2e-15 BF=100 VAF=0 CJE=10p CJC=5p TF=0.3n)
+```
+
+- `BF=100`, `VAF=0` → ตรงกับสมมติฐาน Lab 3 (β คงที่, ไม่มี Early effect)
+- `IS=2e-15` → ทำให้ VBE ≈ 0.70 V ที่กระแส-around-1 mA
+- `CJE/CJC/TF` → ทำให้ `.ac` มีความถี่ตัดจริง (ไม่ใช่กราฟเส้นตรงที่แต่งขึ้น)
+- model นี้ถูกเขียนลง netlist ทุกครั้ง และแสดงในหน้าเว็บช่อง **Model:** เสมอ
+- เจ้าของโปรเจกต์อนุมัติให้ใช้ model ที่กำหนดเองแทน Starter Kit ของอาจารย์แล้ว
+
+## 20. เครื่องมือตรวจ B1–B8
+
+| เครื่องมือ | สถานะ | เหตุผล/หลักฐาน |
+|---|---|---|
+| Playwright MCP | **NOT RUN** | ไม่มี MCP ชื่อ `playwright` เชื่อมต่อใน session นี้ (ตรวจแล้วเช่นเดียวกับ Lab 3) |
+| OpenCode Browser | **USED** | `tools.browser.*` (`navigate`, `snapshot`, `select`, `fill`, `press`, `evaluate`) กดฟอร์มจริงที่ `http://127.0.0.1:5000/` และอ่าน DOM ที่ render จริง |
+| Impeccable | **NOT RUN** | ไม่มี tool/skill ชื่อ Impeccable ใน session นี้ จึงปรับ UI ด้วย CSS ทั่วไปแทน และระบุไว้ตรง ๆ ที่นี่ |
+| ngspice CLI | **USED** | `ngspice_con.exe -b -o run.log -r run.raw circuit.cir` ทุก analysis |
+
+## 21. ตารางผล B1–B8 (ค่าที่เห็นจริง)
+
+| เกณฑ์ | สิ่งที่ทำจริง | ผลที่เห็น | สถานะ |
+|---|---|---|---|
+| **B1** Regression Lab 3 | รัน `unittest discover` + กรอก A1–A5 ซ้ำใน browser หลังเพิ่ม SPICE | `Ran 59 tests ... OK`; A1 `IC 1.230 mA / VCE 8.052 V`, A2 `1.130 / 9.514`, A3 `1.026 / 8.705`, A4 `0.940 / 8.033`, A5 แจ้ง error ไม่มีตารางผล | PASS |
+| **B2** `.op` ตรง analytical | SPICE DC ด้วยค่าเดิม 12 V / 100 kΩ / 22 kΩ / 2.2 kΩ / 1 kΩ | SPICE `VB 1.942 V, VE 1.240 V, VC 9.298 V, VCE 8.058 V, IC 1.228 mA`; analytical `VCE 8.052 V, IC 1.230 mA` → ΔVCE 0.006 V, ΔIC 0.002 mA | PASS |
+| **B3** engine status + provenance | เปิดผล SPICE แล้วดู badge และ `<details>` netlist | `success`, `Engine: ngspice · ngspice-47`, `Model: QNPN NPN(...)`, `Circuit: CE Voltage Divider (netlist สร้างจากค่าที่กรอก)`, have `<details> netlist ที่ส่งให้ ngspice` | PASS |
+| **B4** engine fail ต้องไม่แจ้ง success | กรอก `R1 = 0` แล้วกด Run DC Simulation | ข้อความ `[SPICE DC] ค่าความต้านทานต้องมากกว่า 0 Ω (พบ R1 = 0 Ω)`; ไม่มี `.spice-results`, ไม่มีตารางผล, ไม่มี badge success | PASS |
+| **B5** `.ac` เปลี่ยนตาม RE | รัน AC ด้วย `RE=1 kΩ` แล้วเปลี่ยนเป็น `RE=2 kΩ` | Peak gain `4.86 dB @10 kHz` → **−0.96 dB @10 MHz**; netlist บรรทัด `RE EMIT 0 2000`; กราฟ 121 points เปลี่ยนจริง | PASS |
+| **B6** `.tran` เปลี่ยนตาม source | รัน transient `Vin amplitude=0.01 V` แล้วเปลี่ยนเป็น `0.03 V` | `Vout max 0.009 V` → **0.026 V**; netlist `SIN(0 0.03 1000)`; กราฟ 504 points มี 2 เส้น (Vout + Vin) | PASS |
+| **B7** หน่วยครบ แยก SPICE/analytical | อ่านตารางผลทั้ง 3 analysis | มี `V, mA, dB, Hz, ms, mV peak, points`; หัวข้อ `ผลลัพธ์จาก SPICE` กับ `ผลลัพธ์ Analytical DC Bias` แยกกัน และมีข้อความ `แหล่งผลลัพธ์: สมการ analytical ใน dc_bias.py (ไม่ใช่ SPICE)` | PASS |
+| **B8** ไม่ hard-code กราฟ | ตรวจ netlist/log/series/โค้ด | ทุกกราฟสร้าง `<polyline>` จาก `spice["series"]` ที่ parse จาก `run.raw` จริง (`parse_raw` อ่าน `Values:`); ไม่มีตัวเลขกราฟฝังใน HTML/JS; มี `<details>` แสดง netlist ที่ส่งให้ engine | PASS |
+
+## 22. ผลการรันเทสต์ (จริง)
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t .
+```
+
+```
+Ran 59 tests in 0.500s
+
+OK
+```
+
+แบ่งเป็น 52 tests เดิมของ Lab 3 + 7 tests ใหม่ใน `tests/test_spice_engine.py`
+(4 tests ตรวจ netlist/validation, 3 tests เรียก **ngspice จริง** สำหรับ `.op`, `.ac`, `.tran`)
+
+## 23. ข้อจำกัดที่ต้องแจ้งอาจารย์
+
+- ไม่มี Starter Kit จากอาจารย์ → ใช้ BJT model ที่ระบุในข้อ 19 (เจ้าของโปรเจกต์อนุมัติแล้ว)
+- Playwright MCP และ Impeccable ไม่พร้อมใน session นี้ → ใช้ OpenCode Browser และ CSS แทน ตามข้อ 20
+- ผล SPICE ของ `.op` ต่างจาก analytical เล็กน้อย (0.006 V / 0.002 mA) เพราะ SPICE ใช้โมเดล exponential จริง ไม่ใช่สมการ VBE คงที่ — **ไม่ถือว่าเป็นข้อผิดพลาด** และไม่ได้นำค่าทั้งสองมาปนกัน
+- `ngspice` ไม่มี installer ที่สร้าง icon → ติดตั้งแบบ 7z และเพิ่ม path ลง `PATH` ของ user
+
+## 24. วิธีรันซ้ำ
+
+```powershell
+cd C:\Users\B6809720\Documents\BJT-DC-Bias-Web-App
+$env:Path = 'C:\Users\B6809720\AppData\Local\Programs\ngspice-47\Spice64\bin;' + $env:Path
+.\.venv\Scripts\python.exe -m flask --app app run --host 127.0.0.1 --port 5000
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
+```
+
+เปิด <http://127.0.0.1:5000/> → เลือก **Analysis Mode** เป็น `SPICE DC · .op`, `SPICE AC · .ac` หรือ `SPICE Transient · .tran` แล้วกด Run
+
+## 25. การส่งงาน
+
+ตาม `AGENTS.md` ข้อ 9 **เจ้าของโปรเจกต์เป็นคน commit/push เองผ่าน GitHub Desktop** (AI ไม่รัน `git commit`/`git push`)
+หลัง push แล้วนำ Commit SHA มาเติมใน `README.md` และแนบลิงก์ GitHub ตามข้อ 17
+

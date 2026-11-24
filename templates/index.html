@@ -11,9 +11,16 @@
   <header>
     <h1>BJT DC Bias Calculator</h1>
     <p>วงจร Common-Emitter — เลือก Voltage Divider, Fixed หรือ Emitter Bias เพื่อหา DC Operating Point</p>
+    {% if analysis == 'spice_dc' %}
+    <p class="assumption">
+      SPICE: netlist วงจร CE Voltage Divider ถูกสร้างจากค่าที่กรอก และจำลองด้วย ngspice จริง —
+      model: {{ spice_model }}
+    </p>
+    {% else %}
     <p class="assumption">
       แบบจำลอง: Forward-Active Approximation (β คงที่, VBE คงที่, ไม่คิด Early effect)
     </p>
+    {% endif %}
   </header>
 
   {% if errors %}
@@ -29,7 +36,7 @@
 
   {% if warnings %}
   <section class="warnings" role="alert">
-    <h2>ข้อจำกัดของแบบจำลอง</h2>
+    <h2>{% if analysis == 'spice_dc' %}ข้อจำกัดของผล Analytical ที่ใช้เปรียบเทียบ{% else %}ข้อจำกัดของแบบจำลอง{% endif %}</h2>
     <ul>
       {% for message in warnings %}
       <li>{{ message }}</li>
@@ -40,6 +47,20 @@
 
   <form method="post" action="/">
     <fieldset>
+      <legend>การวิเคราะห์</legend>
+      <div class="field analysis-field">
+        <label for="analysis">Analysis Mode</label>
+        <select id="analysis" name="analysis">
+          <option value="analytical"{% if analysis != 'spice_dc' and analysis != 'spice_ac' and analysis != 'spice_tran' %} selected{% endif %}>Analytical DC Bias (Lab 3)</option>
+          <option value="spice_dc"{% if analysis == 'spice_dc' %} selected{% endif %}>SPICE DC · .op</option>
+          <option value="spice_ac"{% if analysis == 'spice_ac' %} selected{% endif %}>SPICE AC · .ac</option>
+          <option value="spice_tran"{% if analysis == 'spice_tran' %} selected{% endif %}>SPICE Transient · .tran</option>
+        </select>
+        <p class="hint">SPICE ใช้วงจร CE Voltage Divider อ้างอิงและผลจาก ngspice จริง</p>
+      </div>
+    </fieldset>
+
+    <fieldset data-analysis="analytical">
       <legend>เลือกวงจรไบอัส</legend>
       <div class="field mode-field">
         <label for="mode">โหมดวงจร</label>
@@ -60,29 +81,29 @@
         <input type="text" id="vcc" name="vcc" value="{{ values.get('vcc', '12') }}" inputmode="decimal">
       </div>
 
-      <div class="field">
+      <div class="field" data-analysis="analytical">
         <label for="beta">β (hFE)</label>
         <input type="text" id="beta" name="beta" value="{{ values.get('beta', '100') }}" inputmode="decimal">
       </div>
 
-      <div class="field">
+      <div class="field" data-analysis="analytical">
         <label for="vbe">VBE (V)</label>
         <input type="text" id="vbe" name="vbe" value="{{ values.get('vbe', '0.70') }}" inputmode="decimal">
       </div>
 
-      <div class="field" data-modes="fixed emitter">
+      <div class="field" data-analysis="analytical" data-modes="fixed emitter">
         <label for="rb">RB (kΩ)</label>
         <input type="text" id="rb" name="rb" value="{{ values.get('rb', '1000') }}" inputmode="decimal">
         {% if ohms.get('rb') is not none %}<output class="ohms" for="rb">= {{ ohms.rb }} Ω</output>{% endif %}
       </div>
 
-      <div class="field" data-modes="divider">
+      <div class="field" data-analysis="analytical spice_dc spice_ac spice_tran" data-modes="divider">
         <label for="r1">R1 (kΩ)</label>
         <input type="text" id="r1" name="r1" value="{{ values.get('r1', '100') }}" inputmode="decimal">
         {% if ohms.get('r1') is not none %}<output class="ohms" for="r1">= {{ ohms.r1 }} Ω</output>{% endif %}
       </div>
 
-      <div class="field" data-modes="divider">
+      <div class="field" data-analysis="analytical spice_dc spice_ac spice_tran" data-modes="divider">
         <label for="r2">R2 (kΩ)</label>
         <input type="text" id="r2" name="r2" value="{{ values.get('r2', '22') }}" inputmode="decimal">
         {% if ohms.get('r2') is not none %}<output class="ohms" for="r2">= {{ ohms.r2 }} Ω</output>{% endif %}
@@ -94,19 +115,45 @@
         {% if ohms.get('rc') is not none %}<output class="ohms" for="rc">= {{ ohms.rc }} Ω</output>{% endif %}
       </div>
 
-      <div class="field" data-modes="divider emitter">
+      <div class="field" data-analysis="analytical spice_dc spice_ac spice_tran" data-modes="divider emitter">
         <label for="re">RE (kΩ)</label>
         <input type="text" id="re" name="re" value="{{ values.get('re', '1') }}" inputmode="decimal">
         {% if ohms.get('re') is not none %}<output class="ohms" for="re">= {{ ohms.re }} Ω</output>{% endif %}
       </div>
+
+      <div class="field" data-analysis="spice_ac spice_tran">
+        <label for="rl">RL (kΩ)</label>
+        <input type="text" id="rl" name="rl" value="{{ values.get('rl', '10') }}" inputmode="decimal">
+        {% if ohms.get('rl') is not none %}<output class="ohms" for="rl">= {{ ohms.rl }} Ω</output>{% endif %}
+      </div>
+
+      <div class="field" data-analysis="spice_ac spice_tran">
+        <label for="cin">Cin (µF)</label>
+        <input type="text" id="cin" name="cin" value="{{ values.get('cin', '10') }}" inputmode="decimal">
+      </div>
+
+      <div class="field" data-analysis="spice_ac spice_tran">
+        <label for="cout">Cout (µF)</label>
+        <input type="text" id="cout" name="cout" value="{{ values.get('cout', '10') }}" inputmode="decimal">
+      </div>
+
+      <div class="field" data-analysis="spice_tran">
+        <label for="amplitude">Vin amplitude (V peak)</label>
+        <input type="text" id="amplitude" name="amplitude" value="{{ values.get('amplitude', '0.01') }}" inputmode="decimal">
+      </div>
+
+      <div class="field" data-analysis="spice_ac spice_tran">
+        <label for="frequency">Frequency (kHz)</label>
+        <input type="text" id="frequency" name="frequency" value="{{ values.get('frequency', '1') }}" inputmode="decimal">
+      </div>
     </fieldset>
 
-    <button type="submit">Calculate DC Bias</button>
+    <button type="submit">{{ button_label|default('Calculate DC Bias') }}</button>
   </form>
 
   {% if display %}
   <section class="results">
-    <h2>ผลลัพธ์ DC Bias — {{ display.mode_label }}</h2>
+    <h2>ผลลัพธ์ Analytical DC Bias — {{ display.mode_label }}</h2>
     <p class="region region-{{ display.region_class }}">{{ display.region_label }}</p>
     <table>
       <thead>
@@ -118,23 +165,137 @@
         {% endfor %}
       </tbody>
     </table>
+    <p class="provenance">แหล่งผลลัพธ์: สมการ analytical ใน <code>dc_bias.py</code> (ไม่ใช่ SPICE)</p>
+  </section>
+  {% endif %}
+
+  {% if spice %}
+  <section class="results spice-results" aria-live="polite">
+    <h2>ผลลัพธ์จาก SPICE — {{ spice.analysis }}</h2>
+    <div class="provenance">
+      <span class="status status-{{ spice.status }}">{{ spice.status }}</span>
+      <span class="badge">Engine: {{ spice.engine }}</span>
+      <span class="badge">Model: {{ spice.model }}</span>
+      <span class="badge">Circuit: CE Voltage Divider (netlist สร้างจากค่าที่กรอก)</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th scope="col">พารามิเตอร์</th><th scope="col">ค่าจาก ngspice</th></tr>
+      </thead>
+      <tbody>
+        {% for label, value, unit in spice.rows %}
+        <tr><th>{{ label }}</th><td>{{ value }} {{ unit }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if plot %}
+    <figure class="plot">
+      <figcaption>กราฟจากข้อมูล ngspice {{ spice.analysis }} — {{ plot.points }} points</figcaption>
+      <svg viewBox="0 0 {{ plot.width }} {{ plot.height }}" role="img"
+           aria-label="กราฟ {{ plot.y_label }} เทียบกับ {{ plot.x_label }} จากผลจำลอง ngspice">
+        <rect x="{{ plot.left }}" y="{{ plot.top }}" width="{{ plot.plot_w }}"
+              height="{{ plot.plot_h }}" fill="#fbfcfe" stroke="#d7dde3"></rect>
+        {% for tick_x, label in plot.x_ticks %}
+        <line x1="{{ tick_x }}" y1="{{ plot.top }}" x2="{{ tick_x }}"
+              y2="{{ plot.top + plot.plot_h }}" stroke="#e8edf2"></line>
+        <text x="{{ tick_x }}" y="{{ plot.top + plot.plot_h + 18 }}"
+              text-anchor="middle" font-size="11" fill="#64707d">{{ label }}</text>
+        {% endfor %}
+        {% for tick_y, label in plot.y_ticks %}
+        <line x1="{{ plot.left }}" y1="{{ tick_y }}"
+              x2="{{ plot.left + plot.plot_w }}" y2="{{ tick_y }}" stroke="#e8edf2"></line>
+        <text x="{{ plot.left - 8 }}" y="{{ tick_y + 4 }}"
+              text-anchor="end" font-size="11" fill="#64707d">{{ label }}</text>
+        {% endfor %}
+        <polyline points="{{ plot.path_main }}" fill="none" stroke="#2563eb" stroke-width="2"></polyline>
+        {% if plot.path_second %}
+        <polyline points="{{ plot.path_second }}" fill="none" stroke="#94a3b8"
+                  stroke-width="1.5" stroke-dasharray="4 3"></polyline>
+        {% endif %}
+        <text x="{{ plot.left + plot.plot_w / 2 }}" y="{{ plot.height - 4 }}"
+              text-anchor="middle" font-size="12" fill="#33415c">{{ plot.x_label }}</text>
+        <text x="14" y="{{ plot.top + plot.plot_h / 2 }}" transform="rotate(-90 14 {{ plot.top + plot.plot_h / 2 }})"
+              text-anchor="middle" font-size="12" fill="#33415c">{{ plot.y_label }}</text>
+      </svg>
+      <p class="legend">
+        <span class="key key-main">{{ plot.legend_main }}</span>
+        {% if plot.legend_second %}<span class="key key-second">{{ plot.legend_second }}</span>{% endif %}
+      </p>
+    </figure>
+    {% endif %}
+
+    {% if analytical_display %}
+    <details class="comparison">
+      <summary>เปรียบเทียบกับผล Analytical (Lab 3) — แยกคนละแหล่ง ไม่นำมาปนกัน</summary>
+      <table>
+        <thead>
+          <tr><th scope="col">พารามิเตอร์</th><th scope="col">ค่าที่คำนวณ</th></tr>
+        </thead>
+        <tbody>
+          {% for label, value, unit in analytical_display.rows %}
+          <tr><th>{{ label }}</th><td>{{ value }} {{ unit }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="provenance"> Analytical: <code>dc_bias.py</code> · SPICE: <code>ngspice_con</code> → <code>.raw</code></p>
+    </details>
+    {% endif %}
+
+    <details class="log">
+      <summary>engine log (ท้าย 12 บรรทัด)</summary>
+      <pre>{{ spice.log_tail }}</pre>
+    </details>
+
+    <details class="log">
+      <summary>netlist ที่ส่งให้ ngspice (provenance)</summary>
+      <pre>{{ spice.netlist }}</pre>
+    </details>
   </section>
   {% endif %}
 </main>
 
 <script>
-  // หน้าที่เดียวของ JavaScript คือซ่อน/โชว์ช่องตามโหมดที่เลือก
-  // ไม่มีการคำนวณหรือแปลงหน่วยฝั่งเบราว์เซอร์ (สมการอยู่ใน dc_bias.py เท่านั้น)
+  // หน้าที่เดียวของ JavaScript คือซ่อน/โชว์ช่องตาม analysis + mode ที่เลือก
+  // ไม่มีการคำนวณ แปลงหน่วย หรือสร้างกราฟฝั่งเบราว์เซอร์
+  // ค่าทั้งหมดมาจาก dc_bias.py หรือ ngspice ผ่าน app.py เท่านั้น
   (function () {
-    var select = document.getElementById("mode");
-    var fields = document.querySelectorAll("[data-modes]");
-    function sync() {
-      fields.forEach(function (field) {
-        var allowed = field.getAttribute("data-modes").split(" ");
-        field.hidden = allowed.indexOf(select.value) === -1;
-      });
+    var analysisSelect = document.getElementById("analysis");
+    var modeSelect = document.getElementById("mode");
+    var scoped = document.querySelectorAll("[data-analysis], [data-modes]");
+    var submit = document.querySelector('form button[type="submit"]');
+
+    function contains(list, value) {
+      return list.split(" ").indexOf(value) !== -1;
     }
-    select.addEventListener("change", sync);
+
+    function sync() {
+      var analysis = analysisSelect ? analysisSelect.value : "analytical";
+      var mode = modeSelect ? modeSelect.value : "divider";
+
+      scoped.forEach(function (element) {
+        var analyses = element.getAttribute("data-analysis");
+        var modes = element.getAttribute("data-modes");
+        var show = true;
+        if (analyses) show = contains(analyses, analysis);
+        if (show && modes) show = contains(modes, mode);
+        element.hidden = !show;
+      });
+
+      if (submit) {
+        var labels = {
+          analytical: "Calculate DC Bias",
+          spice_dc: "Run DC Simulation",
+          spice_ac: "Run AC Simulation",
+          spice_tran: "Run Transient Simulation"
+        };
+        submit.textContent = labels[analysis] || "Run Simulation";
+      }
+    }
+
+    if (analysisSelect) analysisSelect.addEventListener("change", sync);
+    if (modeSelect) modeSelect.addEventListener("change", sync);
     sync();
   })();
 </script>
