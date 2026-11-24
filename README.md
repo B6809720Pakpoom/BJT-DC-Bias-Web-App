@@ -6,11 +6,11 @@ Flask Web Application สำหรับคำนวณ **DC Operating Point** �
 ต่อยอดจาก Lab 02 (Voltage Divider Bias เดิม) โดยเพิ่ม **Fixed Bias** และ **Emitter Bias แบบแหล่งจ่ายเดียว**
 ผลของ Voltage Divider เมื่อกรอกค่าเดิมยังเหมือนเดิมทุกประการ
 
-> **สถานะ: Lab 3 พร้อมใช้งาน + Lab 4 เพิ่มแล้ว** — 59 tests ผ่าน (`unittest`) และตรวจผลจริงผ่าน OpenCode Browser ตามตาราง A1–A5 และ B1–B8 (ดู `docs/validation.md`)
+> **สถานะ: Lab 3 พร้อมใช้งาน + Lab 4 เพิ่มแล้ว** — 65 tests ผ่าน (`unittest`) และตรวจผลจริงผ่าน OpenCode Browser / Chrome headless ตามตาราง A1–A5 และ B1–B8 (ดู `docs/validation.md`)
 
 - GitHub: <https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App>
 - Commit SHA ของ Lab 3: *(เจ้าของโปรเจกต์กรอกหลัง commit ผ่าน GitHub Desktop)*
-- Commit SHA ของ Lab 4: `183b0b82d97cb112c456b343880dcfd9b4d21814` — <https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App/commit/183b0b82d97cb112c456b343880dcfd9b4d21814>
+- Commit SHA ของ Lab 4 (push แล้ว): `6c0881a157a41f0ef8684568a3ab7a8a5e29ed5d` — <https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App/commit/6c0881a157a41f0ef8684568a3ab7a8a5e29ed5d>
 
 ## Lab 4 — BJT CE Amplifier Simulator (ngspice)
 
@@ -20,13 +20,15 @@ Flask Web Application สำหรับคำนวณ **DC Operating Point** �
 | Analysis | ปุ่ม | ผลที่ได้ |
 |---|---|---|
 | `SPICE DC · .op` | Run DC Simulation | VB, VE, VC, VCE, IC แบบปัดตามหน่วย |
-| `SPICE AC · .ac` | Run AC Simulation | gain (dB) เทียบ frequency (Hz, log) + peak gain |
-| `SPICE Transient · .tran` | Run Transient Simulation | Vout/Vin (V) เทียบเวลา (ms) |
+| `SPICE AC · .ac` | Run AC Simulation | กราฟ Gain (dB) และ **Phase (degree)** เทียบ frequency (Hz, log), peak gain/phase, cutoff −3 dB |
+| `SPICE Transient · .tran` | Run Transient Simulation | Vout/Vin (V) เทียบเวลา (ms), gain, **phase Vout vs Vin** และการกลับเฟส |
 
 - ทุกผลมาจาก `ngspice_con.exe` → ไฟล์ `run.raw` → `spice_engine.py` **ไม่มี mock data และไม่ hard-code กราฟ**
-- แสดง **Engine status** (`success`), **Engine version**, **BJT model**, และ **netlist ที่ส่งจริง** เสมอ
+- แสดง **Engine status** (`success`), **Engine version**, **BJT model**, **netlist ที่ส่งจริง** และ **Reference/วิธีอ่านผล** เสมอ
+- ถ้าไม่มีจุดตัด −3 dB ในช่วง sweep จะโชว์ `not determined in sweep range` (ไม่แต่งตัวเลข fL/fH)
 - ตาราง SPICE กับตาราง Analytical อยู่คนละหัวข้อ ไม่นำผลมาปนกัน
 - ถ้า engine หรืออินพุตผิด จะแจ้ง error และ **ไม่แสดง**ผล/กราฟเก่า
+- ภาพหลักฐานจริงอยู่ใน `captures/` (`b4_ac_desktop.png`, `b5_tran_desktop.png`, `b8_desktop.png`, `b8_mobile.png`)
 
 ### ติดตั้ง ngspice (Windows)
 
@@ -41,7 +43,7 @@ ngspice_con.exe --version   # ต้องเห็น ** ngspice-47
 > `.model QNPN NPN(IS=2e-15 BF=100 VAF=0 CJE=10p CJC=5p TF=0.3n)`
 > (เจ้าของโปรเจกต์อนุมัติแล้ว) — แสดงอยู่ในหน้าเว็บและใน `docs/validation.md` ข้อ 19
 
-Playwright MCP และ Impeccable ไม่พร้อมใน session นี้ จึงใช้ OpenCode Browser + CSS แทน และบันทึก `NOT RUN` ไว้ใน `docs/validation.md` ข้อ 20
+Playwright MCP และ Impeccable ไม่พร้อมใน session นี้ (ไม่มี MCP/skill และไม่มี `node`/`npx`) จึงใช้ OpenCode Browser + Chrome headless (เฉพาะ screenshot) + CSS แทน และบันทึก `NOT RUN` ไว้ใน `docs/validation.md` ข้อ 20
 
 ## ขอบเขตของ Lab 3
 
@@ -57,7 +59,7 @@ Playwright MCP และ Impeccable ไม่พร้อมใน session น�
 
 ## ความต้องการของระบบ
 
-- Python 3.10 ขึ้นไป (ทดสอบบน Python 3.14)
+- Python 3.10 ขึ้นไป (ทดสอบบน Python 3.15.2)
 - Flask (ดู `requirements.txt`)
 
 ## การติดตั้งและรัน
@@ -85,9 +87,10 @@ python -m flask --app app run --debug
 python -m unittest discover -s tests -t . -v
 ```
 
-ผลที่ต้องได้: `Ran 59 tests ... OK` (33 เดิมของ Lab 2 + 19 ของ Lab 3 + 7 ใหม่ของ Lab 4)
+ผลที่ต้องได้: `Ran 65 tests ... OK` (33 เดิมของ Lab 2 + 19 ของ Lab 3 + 13 ใหม่ของ Lab 4)
 
-> 7 tests ของ Lab 4 ใน `tests/test_spice_engine.py` เรียก ngspice จริง 3 tests
+> 13 tests ใหม่ของ Lab 4 แบ่งเป็น `tests/test_spice_engine.py` 10 tests
+> (5 netlist/validation + 5 เรียก ngspice จริง) และ `tests/test_web.py::SpicePages` 3 tests
 > (จะข้ามอัตโนมัติถ้าเครื่องไม่มี ngspice)
 
 > คำสั่งนี้ใช้ได้ทั้งแบบมีและไม่มี `-t .` (ใบงานใช้ `discover -s tests -v` ก็ผ่าน)

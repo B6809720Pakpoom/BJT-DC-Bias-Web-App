@@ -261,6 +261,12 @@ select:focus {
   border-radius: 4px;
 }
 
+.reference {
+  border-left: 3px solid var(--accent);
+  padding: 6px 0 6px 10px;
+  line-height: 1.5;
+}
+
 .spice-results {
   border-color: var(--accent);
 }
@@ -363,5 +369,28 @@ select:focus {
 
   form fieldset {
     grid-template-columns: 1fr;
+  }
+
+  .spice-results table,
+  .results table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .plot {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .plot svg {
+    min-width: 620px;
+  }
+
+  .spice-results .badge {
+    word-break: break-word;
+  }
+
+  button[type="submit"] {
+    width: 100%;
   }
 }

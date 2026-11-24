@@ -7,14 +7,49 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+{% macro plot_figure(plot, caption) %}
+<figure class="plot">
+  <figcaption>{{ caption }} — {{ plot.points }} points</figcaption>
+  <svg viewBox="0 0 {{ plot.width }} {{ plot.height }}" role="img"
+       aria-label="กราฟ {{ plot.y_label }} เทียบกับ {{ plot.x_label }} จากผลจำลอง ngspice">
+    <rect x="{{ plot.left }}" y="{{ plot.top }}" width="{{ plot.plot_w }}"
+          height="{{ plot.plot_h }}" fill="#fbfcfe" stroke="#d7dde3"></rect>
+    {% for tick_x, label in plot.x_ticks %}
+    <line x1="{{ tick_x }}" y1="{{ plot.top }}" x2="{{ tick_x }}"
+          y2="{{ plot.top + plot.plot_h }}" stroke="#e8edf2"></line>
+    <text x="{{ tick_x }}" y="{{ plot.top + plot.plot_h + 18 }}"
+          text-anchor="middle" font-size="11" fill="#64707d">{{ label }}</text>
+    {% endfor %}
+    {% for tick_y, label in plot.y_ticks %}
+    <line x1="{{ plot.left }}" y1="{{ tick_y }}"
+          x2="{{ plot.left + plot.plot_w }}" y2="{{ tick_y }}" stroke="#e8edf2"></line>
+    <text x="{{ plot.left - 8 }}" y="{{ tick_y + 4 }}"
+          text-anchor="end" font-size="11" fill="#64707d">{{ label }}</text>
+    {% endfor %}
+    <polyline points="{{ plot.path_main }}" fill="none" stroke="#2563eb" stroke-width="2"></polyline>
+    {% if plot.path_second %}
+    <polyline points="{{ plot.path_second }}" fill="none" stroke="#94a3b8"
+              stroke-width="1.5" stroke-dasharray="4 3"></polyline>
+    {% endif %}
+    <text x="{{ plot.left + plot.plot_w / 2 }}" y="{{ plot.height - 4 }}"
+          text-anchor="middle" font-size="12" fill="#33415c">{{ plot.x_label }}</text>
+    <text x="14" y="{{ plot.top + plot.plot_h / 2 }}" transform="rotate(-90 14 {{ plot.top + plot.plot_h / 2 }})"
+          text-anchor="middle" font-size="12" fill="#33415c">{{ plot.y_label }}</text>
+  </svg>
+  <p class="legend">
+    <span class="key key-main">{{ plot.legend_main }}</span>
+    {% if plot.legend_second %}<span class="key key-second">{{ plot.legend_second }}</span>{% endif %}
+  </p>
+</figure>
+{% endmacro %}
 <main>
   <header>
     <h1>BJT DC Bias Calculator</h1>
     <p>วงจร Common-Emitter — เลือก Voltage Divider, Fixed หรือ Emitter Bias เพื่อหา DC Operating Point</p>
-    {% if analysis == 'spice_dc' %}
+    {% if analysis and analysis.startswith('spice_') %}
     <p class="assumption">
-      SPICE: netlist วงจร CE Voltage Divider ถูกสร้างจากค่าที่กรอก และจำลองด้วย ngspice จริง —
-      model: {{ spice_model }}
+      SPICE {{ analysis_labels.get(analysis, analysis) }}: netlist วงจร CE Voltage Divider ถูกสร้างจากค่าที่กรอก
+      และจำลองด้วย ngspice จริง — model: {{ spice_model }}
     </p>
     {% else %}
     <p class="assumption">
@@ -36,7 +71,7 @@
 
   {% if warnings %}
   <section class="warnings" role="alert">
-    <h2>{% if analysis == 'spice_dc' %}ข้อจำกัดของผล Analytical ที่ใช้เปรียบเทียบ{% else %}ข้อจำกัดของแบบจำลอง{% endif %}</h2>
+    <h2>{% if analysis and analysis.startswith('spice_') %}ข้อจำกัดของผล Analytical ที่ใช้เปรียบเทียบ{% else %}ข้อจำกัดของแบบจำลอง{% endif %}</h2>
     <ul>
       {% for message in warnings %}
       <li>{{ message }}</li>
@@ -191,39 +226,13 @@
     </table>
 
     {% if plot %}
-    <figure class="plot">
-      <figcaption>กราฟจากข้อมูล ngspice {{ spice.analysis }} — {{ plot.points }} points</figcaption>
-      <svg viewBox="0 0 {{ plot.width }} {{ plot.height }}" role="img"
-           aria-label="กราฟ {{ plot.y_label }} เทียบกับ {{ plot.x_label }} จากผลจำลอง ngspice">
-        <rect x="{{ plot.left }}" y="{{ plot.top }}" width="{{ plot.plot_w }}"
-              height="{{ plot.plot_h }}" fill="#fbfcfe" stroke="#d7dde3"></rect>
-        {% for tick_x, label in plot.x_ticks %}
-        <line x1="{{ tick_x }}" y1="{{ plot.top }}" x2="{{ tick_x }}"
-              y2="{{ plot.top + plot.plot_h }}" stroke="#e8edf2"></line>
-        <text x="{{ tick_x }}" y="{{ plot.top + plot.plot_h + 18 }}"
-              text-anchor="middle" font-size="11" fill="#64707d">{{ label }}</text>
-        {% endfor %}
-        {% for tick_y, label in plot.y_ticks %}
-        <line x1="{{ plot.left }}" y1="{{ tick_y }}"
-              x2="{{ plot.left + plot.plot_w }}" y2="{{ tick_y }}" stroke="#e8edf2"></line>
-        <text x="{{ plot.left - 8 }}" y="{{ tick_y + 4 }}"
-              text-anchor="end" font-size="11" fill="#64707d">{{ label }}</text>
-        {% endfor %}
-        <polyline points="{{ plot.path_main }}" fill="none" stroke="#2563eb" stroke-width="2"></polyline>
-        {% if plot.path_second %}
-        <polyline points="{{ plot.path_second }}" fill="none" stroke="#94a3b8"
-                  stroke-width="1.5" stroke-dasharray="4 3"></polyline>
-        {% endif %}
-        <text x="{{ plot.left + plot.plot_w / 2 }}" y="{{ plot.height - 4 }}"
-              text-anchor="middle" font-size="12" fill="#33415c">{{ plot.x_label }}</text>
-        <text x="14" y="{{ plot.top + plot.plot_h / 2 }}" transform="rotate(-90 14 {{ plot.top + plot.plot_h / 2 }})"
-              text-anchor="middle" font-size="12" fill="#33415c">{{ plot.y_label }}</text>
-      </svg>
-      <p class="legend">
-        <span class="key key-main">{{ plot.legend_main }}</span>
-        {% if plot.legend_second %}<span class="key key-second">{{ plot.legend_second }}</span>{% endif %}
-      </p>
-    </figure>
+    {{ plot_figure(plot, "กราฟจากข้อมูล ngspice " ~ spice.analysis) }}
+    {% endif %}
+    {% if phase_plot %}
+    {{ plot_figure(phase_plot, "กราฟ Phase จากข้อมูล ngspice " ~ spice.analysis) }}
+    {% endif %}
+    {% if spice.reference %}
+    <p class="provenance reference">Reference / วิธีอ่านผล: {{ spice.reference }}</p>
     {% endif %}
 
     {% if analytical_display %}

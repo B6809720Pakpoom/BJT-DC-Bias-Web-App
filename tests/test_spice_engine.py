@@ -44,6 +44,10 @@ class NetlistTests(unittest.TestCase):
         with self.assertRaises(SpiceError):
             run_dc_operating_point({**BASE, "r1": 0})
 
+    def test_zero_rejected_by_b7_case(self):
+        with self.assertRaises(SpiceError):
+            run_dc_operating_point({**BASE, "re": 0})
+
 
 def numeric_row(result, name):
     return float(next(value for label, value, _ in result["rows"] if label == name))
@@ -71,6 +75,26 @@ class RealNgspiceTests(unittest.TestCase):
         large = run_transient_analysis({**BASE, **EXTRA, "amplitude": 0.03})
         self.assertGreater(numeric_row(large, "Vout max"), numeric_row(small, "Vout max"))
         self.assertTrue(all(math.isfinite(p["y"]) for p in small["series"]))
+
+    def test_ac_reports_phase_and_cutoff_reference(self):
+        result = run_ac_analysis({**BASE, **EXTRA})
+        self.assertTrue(all(math.isfinite(p["phase"]) for p in result["series"]))
+        self.assertAlmostEqual(abs(numeric_row(result, "Phase at peak")), 180.0, delta=5.0)
+        labels = [label for label, _, _ in result["rows"]]
+        self.assertIn("Lower cutoff (-3 dB)", labels)
+        self.assertIn("Upper cutoff (-3 dB)", labels)
+        self.assertIn("-3 dB", result["reference"])
+        self.assertTrue(result["netlist"].strip().endswith(".end"))
+
+    def test_transient_reports_inverted_relationship(self):
+        result = run_transient_analysis({**BASE, **EXTRA})
+        self.assertAlmostEqual(numeric_row(result, "Phase Vout vs Vin"), -180.0, delta=20.0)
+        relationship = next(
+            value for label, value, _ in result["rows"] if label == "Signal relationship"
+        )
+        self.assertIn("inverted", relationship)
+        self.assertIn("least-squares", result["reference"])
+        self.assertTrue(result["log_tail"])
 
 
 if __name__ == "__main__":

@@ -257,7 +257,10 @@ def _execute(netlist: str, prefix: str, plotname: str) -> tuple[list[str], list[
     return variables, points, log_tail
 
 
-def _envelope(engine: str, analysis: str, netlist: str, rows: list, log_tail: str, series: list) -> dict:
+def _envelope(
+    analysis: str, netlist: str, rows: list, log_tail: str, series: list,
+    reference: str | None = None,
+) -> dict:
     return {
         "status": "success",
         "engine": f"{ENGINE_LABEL} · {engine_version()}",
@@ -265,9 +268,61 @@ def _envelope(engine: str, analysis: str, netlist: str, rows: list, log_tail: st
         "analysis": analysis,
         "rows": rows,
         "series": series,
+        "reference": reference,
         "netlist": netlist.strip(),
         "log_tail": log_tail,
     }
+
+
+def _wrap_degrees(angle: float) -> float:
+    """Normalise a phase angle to (-180, 180]."""
+    while angle <= -180:
+        angle += 360
+    while angle > 180:
+        angle -= 360
+    return angle
+
+
+def _sin_fit(times: list, values: list, frequency: float) -> tuple[float, float]:
+    """Least-squares (amplitude, phase) of y = A·sin(2πft+φ).
+
+    Phase is returned in degrees in (-180, 180].  The fit is done on the
+    settling-free tail of the transient, not on pre-computed constants.
+    """
+    w = 2 * math.pi * frequency
+    ss = sc = cc = sy = cy = 0.0
+    for t, y in zip(times, values):
+        s, c = math.sin(w * t), math.cos(w * t)
+        ss += s * s
+        sc += s * c
+        cc += c * c
+        sy += y * s
+        cy += y * c
+    det = ss * cc - sc * sc
+    if abs(det) < 1e-18:
+        raise SpiceError("ไม่สามารถวิเคราะห์เฟสของสัญญาณ transient ได้")
+    a = (sy * cc - cy * sc) / det
+    b = (cy * ss - sy * sc) / det
+    return math.hypot(a, b), _wrap_degrees(math.degrees(math.atan2(b, a)))
+
+
+def _cutoff(series: list, peak: dict, direction: int) -> tuple[str, str]:
+    """-3 dB frequency relative to the measured midband peak, if in sweep."""
+    undetermined = ("not determined in sweep range", "")
+    target = peak["y"] - 3.0
+    pairs = [
+        (p["x"], p["y"]) for p in series
+        if (p["x"] <= peak["x"] if direction < 0 else p["x"] >= peak["x"])
+    ]
+    if len(pairs) < 2:
+        return undetermined
+    for (f0, g0), (f1, g1) in zip(pairs, pairs[1:]):
+        if (g0 - target) * (g1 - target) <= 0 and g0 != g1:
+            fraction = (target - g0) / (g1 - g0)
+            # interpolation on log10(f) — the sweep is logarithmic
+            log_f = math.log10(f0) + fraction * (math.log10(f1) - math.log10(f0))
+            return f"{10 ** log_f:.0f}", "Hz"
+    return undetermined
 
 
 def run_dc_operating_point(params: dict) -> dict:
@@ -295,12 +350,8 @@ def run_dc_operating_point(params: dict) -> dict:
         ("IC", f"{ic * 1e3:.3f}", "mA"),
     ]
     return _envelope(
-        "dc",
-        "DC Operating Point (.op)",
-        netlist,
-        rows,
-        log_tail,
-        [],
+        "DC Operating Point (.op)", netlist, rows, log_tail, [],
+        reference="DC: coupling capacitors เปิดวงจร (Cin/Cout ไม่มีผล)",
     )
 
 
@@ -320,10 +371,12 @@ def run_ac_analysis(params: dict) -> dict:
         vin, vout = complex(row[vin_i]), complex(row[vout_i])
         if vin == 0 or frequency <= 0:
             continue
-        gain = abs(vout / vin)
+        ratio = vout / vin
+        gain = abs(ratio)
         series.append({
             "x": frequency,
             "y": 20 * math.log10(gain) if gain > 0 else -400.0,
+            "phase": _wrap_degrees(math.degrees(math.atan2(ratio.imag, ratio.real))),
             "unit_x": "Hz",
             "unit_y": "dB",
         })
@@ -332,13 +385,25 @@ def run_ac_analysis(params: dict) -> dict:
 
     plotted = _downsample(series, 240)
     peak = max(series, key=lambda point: point["y"])
+    low_cutoff, low_unit = _cutoff(series, peak, -1)
+    high_cutoff, high_unit = _cutoff(series, peak, 1)
     rows = [
         ("Frequency sweep", f"{series[0]['x']:.0f} – {series[-1]['x']:.0f}", "Hz"),
         ("Data points", str(len(series)), "points"),
         ("Peak gain", f"{peak['y']:.2f}", "dB"),
         ("Peak at", f"{peak['x']:.0f}", "Hz"),
+        ("Phase at peak", f"{peak['phase']:.1f}", "degree"),
+        ("Lower cutoff (-3 dB)", low_cutoff, low_unit),
+        ("Upper cutoff (-3 dB)", high_cutoff, high_unit),
     ]
-    return _envelope("ac", "AC Frequency Response (.ac)", netlist, rows, log_tail, plotted)
+    return _envelope(
+        "AC Frequency Response (.ac)", netlist, rows, log_tail, plotted,
+        reference=(
+            "Gain/phase = v(out)/v(in) โดย Vin คือโหนด IN ก่อน Cin (AC amplitude = 1); "
+            "cutoff (-3 dB reference) หาจากจุดที่ gain ตก 3 dB จาก peak ที่วัดได้จริง "
+            "(ถ้าไม่มีจุดตัดในช่วง sweep จะระบุ not determined in sweep range)"
+        ),
+    )
 
 
 def run_transient_analysis(params: dict) -> dict:
@@ -362,14 +427,36 @@ def run_transient_analysis(params: dict) -> dict:
         raise SpiceError("ngspice ไม่ได้ส่งข้อมูล transient")
 
     outputs = [point["y"] for point in series]
+    frequency = params["frequency"]
+    # Fit the last two periods only: early cycles still contain start-up settling.
+    tail_from = series[-1]["x"] - 2_000.0 / frequency  # x is in milliseconds
+    tail = [p for p in series if p["x"] >= tail_from]
+    times_s = [p["x"] / 1e3 for p in tail]
+    vin_amp, vin_phase = _sin_fit(times_s, [p["y2"] for p in tail], frequency)
+    vout_amp, vout_phase = _sin_fit(times_s, [p["y"] for p in tail], frequency)
+    phase_delta = _wrap_degrees(vout_phase - vin_phase)
+    if abs(abs(phase_delta) - 180.0) <= 30.0:
+        relationship = "inverted (≈180°)"
+    elif abs(phase_delta) <= 30.0:
+        relationship = "non-inverted (≈0°)"
+    else:
+        relationship = f"phase shift {phase_delta:.1f}°"
+
     rows = [
-        ("Vin amplitude", f"{params['amplitude'] * 1e3:.1f}", "mV peak"),
-        ("Input frequency", f"{params['frequency'] / 1e3:.3f}", "kHz"),
+        ("Vin amplitude (fit)", f"{vin_amp * 1e3:.1f}", "mV peak"),
+        ("Input frequency", f"{frequency / 1e3:.3f}", "kHz"),
         ("Vout min", f"{min(outputs):.3f}", "V"),
         ("Vout max", f"{max(outputs):.3f}", "V"),
+        ("Voltage gain |Vout/Vin|", f"{vout_amp / vin_amp:.2f}", "V/V"),
+        ("Phase Vout vs Vin", f"{phase_delta:.1f}", "degree"),
+        ("Signal relationship", relationship, ""),
         ("Simulation time", f"{series[-1]['x']:.3f}", "ms"),
     ]
     return _envelope(
-        "tran", "Transient Response (.tran)", netlist, rows, log_tail,
+        "Transient Response (.tran)", netlist, rows, log_tail,
         _downsample(series, 600),
+        reference=(
+            "Amplitude/phase หากด้วย least-squares sine fit บน 2 period สุดท้ายของ "
+            "Vin = v(in) และ Vout = v(out) จาก run.raw จริง"
+        ),
     )

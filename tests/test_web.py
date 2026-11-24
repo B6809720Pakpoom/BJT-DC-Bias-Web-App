@@ -211,5 +211,54 @@ class BiasModes(unittest.TestCase):
         self.assertNotIn('class="region region-active"', body)
 
 
+NGSPICE_AVAILABLE = True
+try:
+    from spice_engine import find_engine
+    find_engine()
+except Exception:
+    NGSPICE_AVAILABLE = False
+
+
+@unittest.skipUnless(NGSPICE_AVAILABLE, "ngspice ไม่ได้ติดตั้งบนเครื่องนี้")
+class SpicePages(unittest.TestCase):
+    """Lab 4 — หน้าเว็บต้องแสดงผลจริงจาก engine และไม่โชว์ผลเก่าตอน error"""
+
+    def setUp(self):
+        app.config["TESTING"] = True
+        self.client = app.test_client()
+
+    def post(self, **overrides):
+        form = {
+            **VALID_FORM,
+            "rl": "10", "cin": "10", "cout": "10",
+            "amplitude": "0.01", "frequency": "1",
+            **overrides,
+        }
+        return self.client.post("/", data=form)
+
+    def test_ac_page_has_phase_plot_and_cutoff_rows(self):
+        body = self.post(analysis="spice_ac").get_data(as_text=True)
+        self.assertIn("ผลลัพธ์จาก SPICE — AC Frequency Response (.ac)", body)
+        self.assertIn("Phase (degree)", body)
+        self.assertIn("Phase at peak", body)
+        self.assertIn("Lower cutoff (-3 dB)", body)
+        self.assertIn("not determined in sweep range", body)
+        self.assertEqual(body.count("<polyline"), 2)  # gain + phase
+
+    def test_tran_page_states_inversion_and_shows_two_waveforms(self):
+        body = self.post(analysis="spice_tran").get_data(as_text=True)
+        self.assertIn("Phase Vout vs Vin", body)
+        self.assertIn("inverted (≈180°)", body)
+        self.assertEqual(body.count("<polyline"), 2)  # Vout + Vin
+
+    def test_re_zero_error_does_not_show_success_or_results(self):
+        body = self.post(analysis="spice_dc", re="0").get_data(as_text=True)
+        self.assertIn("RE", error_section(body))
+        self.assertIn("มากกว่า 0", error_section(body))
+        self.assertNotIn("status-success", body)
+        self.assertNotIn("ผลลัพธ์จาก SPICE", body)
+        self.assertNotIn("<polyline", body)
+
+
 if __name__ == "__main__":
     unittest.main()

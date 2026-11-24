@@ -21,7 +21,7 @@ app = Flask(__name__)
 @app.context_processor
 def inject_provenance():
     """ให้ template แสดง model ที่ใช้จริงได้ทุกหน้า (ไม่ hard-code ใน HTML)"""
-    return {"spice_model": BJT_MODEL}
+    return {"spice_model": BJT_MODEL, "analysis_labels": ANALYSIS_LABELS}
 
 COMMON_FIELDS = ("vcc", "rc", "beta", "vbe")
 MODE_FIELDS = {
@@ -190,7 +190,10 @@ def parse_spice_extra(form) -> dict:
     return values
 
 
-def make_plot(series: list, x_log: bool, y2: bool) -> dict | None:
+def make_plot(
+    series: list, x_log: bool, y2: bool = False, key: str = "y",
+    y_label: str | None = None, legend: str | None = None,
+) -> dict | None:
     """สร้างพิกัด SVG จากข้อมูล ngspice จริง — ไม่มีการ hard-code กราฟ"""
     if not series:
         return None
@@ -200,7 +203,7 @@ def make_plot(series: list, x_log: bool, y2: bool) -> dict | None:
     plot_w, plot_h = width - left - right, height - top - bottom
 
     xs = [math.log10(p["x"]) if x_log else p["x"] for p in series]
-    ys = [p["y"] for p in series]
+    ys = [p[key] for p in series]
     all_y = ys + ([p["y2"] for p in series] if y2 else [])
     x_min, x_max = min(xs), max(xs)
     y_min, y_max = min(all_y), max(all_y)
@@ -235,15 +238,15 @@ def make_plot(series: list, x_log: bool, y2: bool) -> dict | None:
     ]
 
     return {
-        "path_main": path(xs, "y"),
+        "path_main": path(xs, key),
         "path_second": path(xs, "y2") if y2 else None,
         "x_ticks": x_ticks,
         "y_ticks": y_ticks,
         "x_label": "Frequency (Hz, log10)" if x_log else "Time (ms)",
-        "y_label": "Gain (dB)" if not y2 else "Voltage (V)",
+        "y_label": y_label or ("Gain (dB)" if not y2 else "Voltage (V)"),
         "left": left, "top": top, "width": width, "height": height,
         "plot_w": round(plot_w, 2), "plot_h": round(plot_h, 2),
-        "legend_main": "Gain (dB)" if not y2 else "Vout",
+        "legend_main": legend or ("Gain (dB)" if not y2 else "Vout"),
         "legend_second": "Vin" if y2 else None,
         "points": len(series),
     }
@@ -338,6 +341,13 @@ def index():
                     spice["series"],
                     x_log=(analysis == "spice_ac"),
                     y2=(analysis == "spice_tran"),
+                ),
+                phase_plot=(
+                    make_plot(
+                        spice["series"], x_log=True,
+                        key="phase", y_label="Phase (degree)", legend="Phase",
+                    )
+                    if analysis == "spice_ac" else None
                 ),
             )
 
