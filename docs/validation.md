@@ -309,23 +309,25 @@ OK
 
 | เกณฑ์ตามใบงาน | สิ่งที่ทำจริง | ผลที่เห็น | สถานะ |
 |---|---|---|---|
-| **B1 · Regression** | รัน `unittest discover` + กรอก A1–A5 ซ้ำหลังเพิ่ม SPICE | `Ran 65 tests ... OK`; A1 `IC 1.230 mA / VCE 8.052 V`, A2 `1.130 / 9.514`, A3 `1.026 / 8.705`, A4 `0.940 / 8.033`, A5 แจ้ง error ไม่มีตารางผล | PASS |
+| **B1 · Regression** | รัน `unittest discover` + กรอก A1–A5 ซ้ำหลังเพิ่ม SPICE | `Ran 66 tests ... OK`; A1 `IC 1.230 mA / VCE 8.052 V`, A2 `1.130 / 9.514`, A3 `1.026 / 8.705`, A4 `0.940 / 8.033`, A5 แจ้ง error ไม่มีตารางผล | PASS |
 | **B2 · DC SPICE** | เลือก `SPICE DC · .op` ด้วยค่าเดิม 12 V / 100 kΩ / 22 kΩ / 2.2 kΩ / 1 kΩ | `VB 1.942 V, VE 1.240 V, VC 9.298 V, VCE 8.058 V, IC 1.228 mA`; badge `success`, `Engine: ngspice · ngspice-47`, `Model: QNPN NPN(...)`; analytical `1.230 mA / 8.052 V` อยู่คนละหัวข้อ → ΔIC 0.002 mA, ΔVCE 0.006 V | PASS |
 | **B3 · Change RE** | เปลี่ยนเฉพาะ `RE` 1→2 kΩ แล้วรัน DC และ AC ซ้ำ | DC: `VB 1.942→2.043 V`, `VCE 8.058→9.166 V`, `IC 1.228→0.671 mA`; AC: peak `4.86→−0.96 dB`; netlist เปลี่ยนเป็น `RE EMIT 0 2000` — ไม่ใช่ค่าค้าง | PASS |
-| **B4 · AC Bode** | รัน `SPICE AC · .ac`, อ่าน gain + phase + cutoff | 121 points, 10–10 000 000 Hz, peak `4.86 dB @10 kHz`, `Phase at peak 180.0 degree`; `Lower/Upper cutoff (-3 dB) = not determined in sweep range` (ไม่มีจุดตัดจริงในช่วง sweep → ไม่แต่งตัวเลข); มี 2 กราฟ: Gain (dB) และ Phase (degree) | PASS |
-| **B5 · Transient** | รัน `SPICE Transient · .tran` ที่ **10 mV peak, 1 kHz** | `Vin amplitude (fit) 10.0 mV peak`, `Vout min −0.017 V`, `Vout max 0.017 V`, `|Vout/Vin| 1.75 V/V`, `Phase Vout vs Vin −179.9 degree` → `inverted (≈180°)`; กราฟ 504 points มี 2 เส้น Vout/Vin พร้อมแกน Time (ms) / Voltage (V) | PASS |
+| **B4 · AC Bode** | รัน `SPICE AC · .ac`, อ่าน gain + phase + cutoff แล้ว **ดูกราฟบนหน้าจอจริงอีกครั้งหลังแก้ syntax** | 121 points, 10–10 000 000 Hz, peak `4.86 dB @10 kHz`, `Phase at peak 180.0 degree`; `Lower/Upper cutoff (-3 dB) = not determined in sweep range` (ไม่มีจุดตัดจริงในช่วง sweep → ไม่แต่งตัวเลข); มี 2 กราฟ Gain (dB) + Phase (degree), ตรวจ `getBBox()` ได้ `686×176 px` ทั้ง 2 เส้น และ Console ไม่มี error | PASS (หลังแก้) |
+| **B5 · Transient** | รัน `SPICE Transient · .tran` ที่ **10 mV peak, 1 kHz** | `Vin amplitude (fit) 10.0 mV peak`, `Vout min −0.017 V`, `Vout max 0.017 V`, `|Vout/Vin| 1.75 V/V`, `Phase Vout vs Vin −179.9 degree` → `inverted (≈180°)`; กราฟ 504 points มี 2 เส้น Vout/Vin พร้อมแกน Time (ms) / Voltage (V); DOM หลังแก้มี `<polyline>` 2 เส้นที่ render จริง | PASS (หลังแก้) |
 | **B6 · Change Source** | เปลี่ยน amplitude `0.01→0.03 V` และ frequency `1→2 kHz` แล้วรันซ้ำ | `Vout max 0.017→0.052 V`, `Simulation time 5.000→2.500 ms`, netlist `SIN(0 0.03 2000)` — waveform เปลี่ยนตาม input จริง | PASS |
 | **B7 · Invalid / Fail** | กรอก `RE = 0` ใน SPICE DC (และ `R1 = 0` ทวนซ้ำ) | ข้อความจริง `[SPICE DC] ค่าความต้านทานต้องมากกว่า 0 Ω (พบ RE = 0 Ω)`; ไม่มี `.spice-results`, ไม่มี `<polyline>`, ไม่มี `status-success` | PASS |
-| **B8 · UI Desktop/Mobile** | เปิดหน้า AC จริงที่ 1280×2200 และ 500×2600 (Chromium headless ต่ำสุด 500 CSS px → media query `max-width:640px` ทำงาน; ตรวจ `grid-template-columns` ได้ `1fr`) | ปุ่ม/ช่อง/หน่วย/legend/กราฟอ่านได้จริง; mobile ใช้ single-column และกราฟเลื่อนแนวนอนได้ ไม่มีเนื้อหาสำคัญถูกตัด → `captures/b8_desktop.png`, `captures/b8_mobile.png` | PASS |
+| **B8 · UI Desktop/Mobile** | เปิดหน้า AC จริงที่ 1280×2200 และ 500×2600 (Chromium headless ต่ำสุด 500 CSS px → media query `max-width:640px` ทำงาน; ตรวจ `grid-template-columns` ได้ `1fr`) | ปุ่ม/ช่อง/หน่วย/legend/กราฟอ่านได้จริง; mobile ใช้ single-column และกราฟเลื่อนแนวนอนได้ ไม่มีเนื้อหาสำคัญถูกตัด; screenshot ถูก **ถ่ายใหม่หลังแก้ syntax** (DOM มี `<polyline>` 2 เส้น ไม่มี `M/L`) → `captures/b8_desktop.png`, `captures/b8_mobile.png` | PASS |
 
-หลักฐานกราฟเพิ่มเติม: `captures/b4_ac_desktop.png` (Bode gain+phase), `captures/b5_tran_desktop.png` (Vin/Vout)
+หลักฐานกราฟเพิ่มเติม (ถ่ายใหม่หลังแก้): `captures/b4_ac_desktop.png` (Bode gain+phase), `captures/b5_tran_desktop.png` (Vin/Vout — ใช้ viewport สูง 2400 px เพราะกราฟ transient เริ่มที่ตำแหน่งประมาณ 1576 px จึงต้องถ่ายให้เลยตำแหน่งนั้น)
 
-## 22. การพิสูจน์ว่าไม่ใช่ mock data (B3/B4/B5/B6)
+## 22. การพิสูจน์ว่าไม่ใช่ mock data (B3/B4/B5/B6) + Bug ที่ผู้เรียนพบ
 
 - ทุกกราฟสร้าง `<polyline>` จาก `spice["series"]` → `parse_raw()` อ่านบรรทัด `Values:` ของ `run.raw` ที่ ngspice เขียนจริง
 - `app.py::make_plot()` คำนวณพิกัด SVG จาก series เท่านั้น ไม่มีตัวเลขกราฟฝังใน HTML/JS
 - netlist และ engine log ที่ส่ง/ได้จริงแสดงใน `<details>` ทุกครั้ง → ตรวจ `RE EMIT 0 2000` / `SIN(0 0.03 2000)` ได้
 - ถ้า `ngspice` หาย ระบบขึ้น `ไม่พบ ngspice ใน PATH ...` และ **ไม่ส่ง** `spice`/`plot` ให้ template → ไม่มีผลสำเร็จปลอม (ทดสอบใน `tests/test_web.py`)
+- **Bug จริงที่ผู้เรียนตรวจพบ:** DOM มี `<polyline>` ครบ 121 points แต่กราฟไม่ปรากฏเพราะ `app.py::make_plot()` เขียน points ในรูป `M x,y L x,y ...` (path syntax) ซึ่ง `<polyline>` ไม่รองรับ → Browser Console: `Error: <polyline> attribute points: Expected number, "M56.00,177.79 L6…"` จึงเปลี่ยนเป็น `"x,y x,y ..."` แทน
+- หลังแก้ เปิดแท็บใหม่ รัน AC จริง: `getBBox()` ของทั้ง 2 polyline = `686×176 px`, `points` ไม่มี `M/L`, Console errors = `[]`; เพิ่ม `test_polyline_points_use_valid_svg_polyline_syntax()` กัน regression และถ่าย screenshot ใหม่ทุกไฟล์
 
 ## 23. ผลการรันเทสต์ (จริง)
 
@@ -334,14 +336,14 @@ OK
 ```
 
 ```
-Ran 65 tests in 0.815s
+Ran 66 tests in 0.563s
 
 OK
 ```
 
-แบ่งเป็น 52 tests เดิมของ Lab 3 + 13 tests ใหม่ของ Lab 4
+แบ่งเป็น 52 tests เดิมของ Lab 3 + 14 tests ใหม่ของ Lab 4
 (`tests/test_spice_engine.py` 10 tests — 5 netlist/validation + 5 เรียก ngspice จริง;
-`tests/test_web.py::SpicePages` 3 tests — หน้า AC/transient และ error RE=0)
+`tests/test_web.py::SpicePages` 4 tests — หน้า AC/transient, error RE=0 และ syntax ของ `<polyline points>`)
 
 ## 24. ข้อจำกัดที่ต้องแจ้งอาจารย์
 
@@ -365,14 +367,15 @@ $env:Path = 'C:\Users\B6809720\AppData\Local\Programs\ngspice-47\Spice64\bin;' +
 ## 26. การส่งงาน
 
 ตาม `AGENTS.md` ข้อ 9 **เจ้าของโปรเจกต์เป็นคน commit/push เองผ่าน GitHub Desktop** (AI ไม่รัน `git commit`/`git push`)
-Commit ล่าสุดที่ push แล้ว: `9d3549fc5995cbca3483f35c7bedd082577f59b9` (`docs: note superpowers skill not run`)
-`git status` ขึ้นแค่ `## lab04-ngspice...origin/lab04-ngspice` → working tree สะอาด ตรง remote แล้ว
+Commit ล่าสุดที่ push แล้ว: `a8c33ed309e45eb7fa8b0c69af09985b0dfd8249` (`add AI vs learner verification note`)
+ก่อนหน้านั้น: `9d3549f` → `f0a3853` → `6c0881a` → `183b0b8` (ตรง remote ทั้งหมด)
 
 ## 27. บันทึก 3–5 บรรทัด — AI ทำอะไร / นักศึกษาตรวจอะไรเอง
 
 - **AI สร้าง/แก้:** `spice_engine.py` (สร้าง netlist, เรียก `ngspice_con.exe` ด้วย `subprocess.run` แบบ list + timeout, parse `run.raw` ทั้ง real/complex), `app.py` (route `.op/.ac/.tran`, `make_plot`, reference/provenance), `templates/index.html`, `static/style.css`, `tests/` และเอกสารนี้
-- **AI ตรวจด้วย tool:** `Ran 65 tests ... OK`, OpenCode Browser B1–B8, Chrome headless สำหรับ `captures/*.png` — แต่ผลทั้งหมดถูกอ่านจากหน้าเว็บ/engine จริง ไม่ใช่ค่าที่แต่งขึ้น
-- **นักศึกษาตรวจ/ยืนยันเอง:** เปิดแท็บที่ focus ดูหน้าจอจริง, ขอ screenshot, อนุมัติ plan และ BJT model ที่ใช้แทน Starter Kit, เป็นคน commit/push ทุก commit รวม `9d3549f`
+- **AI ตรวจด้วย tool:** `Ran 66 tests ... OK`, OpenCode Browser B1–B8, Chrome headless สำหรับ `captures/*.png` — แต่ผลทั้งหมดถูกอ่านจากหน้าเว็บ/engine จริง ไม่ใช่ค่าที่แต่งขึ้น
+- **นักศึกษาตรวจ/ยืนยันเอง:** เปิดแท็บที่ focus ดูหน้าจอจริง, ขอ screenshot, **พบ bug ที่ AI พลาด (กราฟไม่ขึ้นแม้ DOM มี polyline)** → บังคับให้ตรวจ console ใหม่จนเจอ path syntax ผิด, อนุมัติ plan และ BJT model แทน Starter Kit, เป็นคน commit/push ทุก commit รวม `a8c33ed`
+- การแก้ bug นี้รอเจ้าของโปรเจกต์ commit/push อีก 1 ครั้ง (`app.py`, `tests/test_web.py`, `docs/validation.md`, `README.md`, `captures/*.png`) — AI ไม่รัน `git commit`/`git push` เอง
 - **ไม่มี before/after ของ Impeccable** เพราะ skill ไม่พร้อม → ปรับ UI ด้วย CSS ใน commit `f0a3853` และระบุ `NOT RUN` ไว้ในข้อ 20 ตามตรง
 - ข้อความ/ตัวเลขที่เห็นตรงกับ ngspice log และ netlist ที่แสดงใน `<details>` ทุกครั้ง ถ้า engine fail ระบบไม่โชว์ผลเก่าหรือ badge success ปลอม
 

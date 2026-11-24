@@ -222,9 +222,10 @@ def make_plot(
         return top + (y_max - y) / (y_max - y_min) * plot_h
 
     def path(points: list, key: str) -> str:
+        # <polyline points> ต้องเป็น "x,y x,y ..." — คำสั่ง M/L เป็นของ <path>
         return " ".join(
-            ("M" if i == 0 else "L") + f"{px(v):.2f},{py(p[key]):.2f}"
-            for i, (v, p) in enumerate(zip(xs, series))
+            f"{px(v):.2f},{py(p[key]):.2f}"
+            for v, p in zip(points, series)
         )
 
     x_ticks = []

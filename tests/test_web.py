@@ -245,6 +245,13 @@ class SpicePages(unittest.TestCase):
         self.assertIn("not determined in sweep range", body)
         self.assertEqual(body.count("<polyline"), 2)  # gain + phase
 
+    def test_polyline_points_use_valid_svg_polyline_syntax(self):
+        body = self.post(analysis="spice_ac").get_data(as_text=True)
+        points = re.search(r'<polyline points="([^"]+)"', body).group(1).strip()
+        # <polyline> รับ "x,y x,y ..." เท่านั้น — คำสั่ง M/L ของ <path> ทำให้กราฟไม่ขึ้น
+        self.assertNotRegex(points, r"[ML]")
+        self.assertRegex(points, r"^(?:-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?\s*)+$")
+
     def test_tran_page_states_inversion_and_shows_two_waveforms(self):
         body = self.post(analysis="spice_tran").get_data(as_text=True)
         self.assertIn("Phase Vout vs Vin", body)

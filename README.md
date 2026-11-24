@@ -6,7 +6,7 @@ Flask Web Application สำหรับคำนวณ **DC Operating Point** �
 ต่อยอดจาก Lab 02 (Voltage Divider Bias เดิม) โดยเพิ่ม **Fixed Bias** และ **Emitter Bias แบบแหล่งจ่ายเดียว**
 ผลของ Voltage Divider เมื่อกรอกค่าเดิมยังเหมือนเดิมทุกประการ
 
-> **สถานะ: Lab 3 พร้อมใช้งาน + Lab 4 เพิ่มแล้ว** — 65 tests ผ่าน (`unittest`) และตรวจผลจริงผ่าน OpenCode Browser / Chrome headless ตามตาราง A1–A5 และ B1–B8 (ดู `docs/validation.md`)
+> **สถานะ: Lab 3 พร้อมใช้งาน + Lab 4 เพิ่มแล้ว** — 66 tests ผ่าน (`unittest`) และตรวจผลจริงผ่าน OpenCode Browser / Chrome headless ตามตาราง A1–A5 และ B1–B8 (ดู `docs/validation.md`)
 
 - GitHub: <https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App>
 - Commit SHA ของ Lab 3: *(เจ้าของโปรเจกต์กรอกหลัง commit ผ่าน GitHub Desktop)*
@@ -24,6 +24,7 @@ Flask Web Application สำหรับคำนวณ **DC Operating Point** �
 | `SPICE Transient · .tran` | Run Transient Simulation | Vout/Vin (V) เทียบเวลา (ms), gain, **phase Vout vs Vin** และการกลับเฟส |
 
 - ทุกผลมาจาก `ngspice_con.exe` → ไฟล์ `run.raw` → `spice_engine.py` **ไม่มี mock data และไม่ hard-code กราฟ**
+- กราฟใช้ `<polyline points="x,y x,y ...">` (ไม่ใช่ `M/L` ของ `<path>`) — มี regression test กันกราฟไม่ขึ้นแม้ DOM มี points ครบ
 - แสดง **Engine status** (`success`), **Engine version**, **BJT model**, **netlist ที่ส่งจริง** และ **Reference/วิธีอ่านผล** เสมอ
 - ถ้าไม่มีจุดตัด −3 dB ในช่วง sweep จะโชว์ `not determined in sweep range` (ไม่แต่งตัวเลข fL/fH)
 - ตาราง SPICE กับตาราง Analytical อยู่คนละหัวข้อ ไม่นำผลมาปนกัน
@@ -87,10 +88,11 @@ python -m flask --app app run --debug
 python -m unittest discover -s tests -t . -v
 ```
 
-ผลที่ต้องได้: `Ran 65 tests ... OK` (33 เดิมของ Lab 2 + 19 ของ Lab 3 + 13 ใหม่ของ Lab 4)
+ผลที่ต้องได้: `Ran 66 tests ... OK` (33 เดิมของ Lab 2 + 19 ของ Lab 3 + 14 ใหม่ของ Lab 4)
 
-> 13 tests ใหม่ของ Lab 4 แบ่งเป็น `tests/test_spice_engine.py` 10 tests
-> (5 netlist/validation + 5 เรียก ngspice จริง) และ `tests/test_web.py::SpicePages` 3 tests
+> 14 tests ใหม่ของ Lab 4 แบ่งเป็น `tests/test_spice_engine.py` 10 tests
+> (5 netlist/validation + 5 เรียก ngspice จริง) และ `tests/test_web.py::SpicePages` 4 tests
+> (หน้า AC/transient, error RE=0 และ `<polyline points>` ต้องเป็น `x,y x,y ...`)
 > (จะข้ามอัตโนมัติถ้าเครื่องไม่มี ngspice)
 
 > คำสั่งนี้ใช้ได้ทั้งแบบมีและไม่มี `-t .` (ใบงานใช้ `discover -s tests -v` ก็ผ่าน)
