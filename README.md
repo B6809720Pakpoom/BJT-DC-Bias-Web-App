@@ -10,7 +10,7 @@ Flask Web Application สำหรับคำนวณ **DC Operating Point** �
 
 - GitHub: <https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App>
 - Commit SHA ของ Lab 3: *(เจ้าของโปรเจกต์กรอกหลัง commit ผ่าน GitHub Desktop)*
-- Commit SHA ของ Lab 4 (push แล้ว): `6c0881a157a41f0ef8684568a3ab7a8a5e29ed5d` — <https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App/commit/6c0881a157a41f0ef8684568a3ab7a8a5e29ed5d>
+- Commit SHA ของ Lab 4 (push แล้ว): `e472a214522dced888f4cba93f031ae094b4b43f` — <https://github.com/B6809720Pakpoom/BJT-DC-Bias-Web-App/commit/e472a214522dced888f4cba93f031ae094b4b43f>
 
 ## Lab 4 — BJT CE Amplifier Simulator (ngspice)
 

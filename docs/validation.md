@@ -367,15 +367,15 @@ $env:Path = 'C:\Users\B6809720\AppData\Local\Programs\ngspice-47\Spice64\bin;' +
 ## 26. การส่งงาน
 
 ตาม `AGENTS.md` ข้อ 9 **เจ้าของโปรเจกต์เป็นคน commit/push เองผ่าน GitHub Desktop** (AI ไม่รัน `git commit`/`git push`)
-Commit ล่าสุดที่ push แล้ว: `a8c33ed309e45eb7fa8b0c69af09985b0dfd8249` (`add AI vs learner verification note`)
-ก่อนหน้านั้น: `9d3549f` → `f0a3853` → `6c0881a` → `183b0b8` (ตรง remote ทั้งหมด)
+Commit ล่าสุดที่ push แล้ว: `e472a214522dced888f4cba93f031ae094b4b43f` (`render SVG polylines and refresh browser evidence`)
+ก่อนหน้านั้น: `a8c33ed` → `9d3549f` → `f0a3853` → `6c0881a` → `183b0b8` (ตรง remote ทั้งหมด)
 
 ## 27. บันทึก 3–5 บรรทัด — AI ทำอะไร / นักศึกษาตรวจอะไรเอง
 
 - **AI สร้าง/แก้:** `spice_engine.py` (สร้าง netlist, เรียก `ngspice_con.exe` ด้วย `subprocess.run` แบบ list + timeout, parse `run.raw` ทั้ง real/complex), `app.py` (route `.op/.ac/.tran`, `make_plot`, reference/provenance), `templates/index.html`, `static/style.css`, `tests/` และเอกสารนี้
 - **AI ตรวจด้วย tool:** `Ran 66 tests ... OK`, OpenCode Browser B1–B8, Chrome headless สำหรับ `captures/*.png` — แต่ผลทั้งหมดถูกอ่านจากหน้าเว็บ/engine จริง ไม่ใช่ค่าที่แต่งขึ้น
-- **นักศึกษาตรวจ/ยืนยันเอง:** เปิดแท็บที่ focus ดูหน้าจอจริง, ขอ screenshot, **พบ bug ที่ AI พลาด (กราฟไม่ขึ้นแม้ DOM มี polyline)** → บังคับให้ตรวจ console ใหม่จนเจอ path syntax ผิด, อนุมัติ plan และ BJT model แทน Starter Kit, เป็นคน commit/push ทุก commit รวม `a8c33ed`
-- การแก้ bug นี้รอเจ้าของโปรเจกต์ commit/push อีก 1 ครั้ง (`app.py`, `tests/test_web.py`, `docs/validation.md`, `README.md`, `captures/*.png`) — AI ไม่รัน `git commit`/`git push` เอง
+- **นักศึกษาตรวจ/ยืนยันเอง:** เปิดแท็บที่ focus ดูหน้าจอจริง, ขอ screenshot, **พบ bug ที่ AI พลาด (กราฟไม่ขึ้นแม้ DOM มี polyline)** → บังคับให้ตรวจ console ใหม่จนเจอ path syntax ผิด, อนุมัติ plan และ BJT model แทน Starter Kit, เป็นคน commit/push ทุก commit รวม `e472a21`
+- การแก้ bug นี้ (`app.py`, `tests/test_web.py`, `docs/validation.md`, `README.md`, `captures/*.png`) ถูก commit/push แล้วใน `e472a21` — AI ไม่รัน `git commit`/`git push` เอง
 - **ไม่มี before/after ของ Impeccable** เพราะ skill ไม่พร้อม → ปรับ UI ด้วย CSS ใน commit `f0a3853` และระบุ `NOT RUN` ไว้ในข้อ 20 ตามตรง
 - ข้อความ/ตัวเลขที่เห็นตรงกับ ngspice log และ netlist ที่แสดงใน `<details>` ทุกครั้ง ถ้า engine fail ระบบไม่โชว์ผลเก่าหรือ badge success ปลอม
 
